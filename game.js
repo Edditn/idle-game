@@ -99,7 +99,6 @@ const rarities = {
   Rare: { color: '#63b3ed', levelBoost: 6 }, // Blue (Reduced from 10)
   Epic: { color: '#9f7aea', levelBoost: 9 }, // Purple (Reduced from 15)
   Legendary: { color: '#f6ad55', levelBoost: 15 }, // Orange (Reduced from 25)
-  Mythic: { color: '#f6ad55', levelBoost: 25 } //No color yet
 };
 
 // Define stat affixes and their weights (total weight 15 per affix for weapons, 15 for armor)
@@ -161,9 +160,8 @@ const rarityChances = [
   { rarity: 'Common', chance: 82 },
   { rarity: 'Uncommon', chance: 15 },
   { rarity: 'Rare', chance: 2.5 },
-  { rarity: 'Epic', chance: 0.4 },
-  { rarity: 'Legendary', chance: 0.095 },
-  { rarity: 'Mythic', chance: 0.005 }
+  { rarity: 'Epic', chance: 0.49 },
+  { rarity: 'Legendary', chance: 0.01 },
 ];
 // Item definitions - now with 'baseStatValue' instead of individual bonuses
 const items = {
