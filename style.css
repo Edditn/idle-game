@@ -1,0 +1,560 @@
+/*
+  This file contains all the CSS styling for your game.
+  It was originally embedded within the <style> tags in your HTML.
+*/
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #1a202c; /* Dark background */
+  color: #e2e8f0; /* Light text */
+  display: flex;
+  justify-content: center; /* Center content horizontally */
+  align-items: center; /* Center content vertically */
+  min-height: 100vh;
+  margin: 0;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow-x: hidden; /* Prevent horizontal scrollbar during transition */
+}
+/* Main container for game and inventory, using flexbox for side-by-side */
+#main-game-area {
+  display: grid;
+  /* Define columns: left panel (stats), main game, right panel (inventory + equipped + controls) */
+  grid-template-columns: 300px 600px 600px; /* 300px (left) + 600px (game) + (300px + 300px for inv/equipped) = 600px */
+  grid-template-areas: 'player-stats game right-side-panel'; /* All in one row now, right-side-panel takes up the space */
+  gap: 20px;
+  align-items: flex-start;
+  transition: margin-left 0.3s ease-out;
+}
+/* Common styles for main containers */
+.game-container,
+#player-stats-container {
+  /* Only these retain the fixed min-height for now */
+  background-color: #2d3748; /* Slightly lighter dark background for container */
+  border-radius: 1rem; /* Rounded corners */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.06); /* Shadow */
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: 400px; /* Keep min-height for visual consistency */
+}
+/* Specific styles for inventory and equipped items, now that they are flex items */
+#inventory-container,
+#equipped-items-container {
+  background-color: #2d3748; /* Keep background etc. */
+  border-radius: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.06);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: 300px; /* Smaller min-height for individual panels */
+}
+/* Assign grid areas to existing containers */
+.game-container {
+  grid-area: game;
+}
+#player-stats-container {
+  grid-area: player-stats;
+}
+/* New style for the right-side-panel */
+#right-side-panel {
+  grid-area: right-side-panel;
+  display: flex;
+  flex-direction: column; /* Stack its children vertically */
+  gap: 20px; /* Space between the side-by-side block and the controls block */
+  /* Background, border-radius, shadow, padding are applied to children for individual styling */
+  /* No background, border-radius, shadow, padding here, as children will have them */
+}
+.section-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #a0aec0; /* Lighter grey for titles */
+  margin-bottom: 0.5rem;
+  border-bottom: 2px solid #4a5568;
+  padding-bottom: 0.5rem;
+}
+.stats-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+}
+.log-entry {
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed #4a5568;
+}
+.log-entry:last-child {
+  border-bottom: none;
+}
+.log-area {
+  background-color: #1a202c;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  height: 200px; /* Fixed height */
+  overflow-y: scroll; /* Changed from auto to scroll */
+  overflow-x: hidden; /* Added to prevent horizontal overflow */
+  border: 1px solid #4a5568;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  text-align: center;
+  background-color: #63b3ed; /* Blue */
+  color: #1a202c;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+.button:hover {
+  background-color: #4299e1; /* Darker blue on hover */
+  transform: translateY(-1px);
+}
+.button:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+.button:disabled {
+  /* Style for disabled buttons */
+  background-color: #4a5568; /* Greyed out */
+  color: #a0aec0;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+/* Styles for attack progress bars */
+.attack-progress-section {
+  margin-top: 0.5rem; /* Reduced margin for tighter fit */
+}
+.attack-progress-section .section-title {
+  font-size: 1rem; /* Smaller title for sub-section */
+  font-weight: normal;
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0.25rem; /* Reduced margin to bring bar closer to title */
+}
+.progress-bar-container {
+  width: 50%; /* Half length */
+  background-color: #4a5568; /* Darker grey for container */
+  border-radius: 0.5rem;
+  overflow: hidden;
+  height: 0.75rem; /* Half width */
+  border: 1px solid #63b3ed; /* Blue border for player */
+  position: relative; /* For timer text overlay */
+}
+.enemy-progress-bar-container {
+  border: 1px solid #fc8181; /* Red border for enemy */
+}
+.progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  background-color: #63b3ed; /* Blue fill for player */
+  border-radius: 0.5rem;
+}
+.enemy-progress-bar-fill {
+  background-color: #e53e3e; /* Red fill for enemy */
+}
+.attack-timer-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #1a202c; /* Dark text for contrast */
+  font-weight: bold;
+  font-size: 0.75rem; /* Smaller font size for smaller bar */
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  z-index: 1; /* Ensure text is above the fill */
+}
+/* Styles for the XP progress bar */
+.xp-progress {
+  margin-top: 1rem;
+}
+.xp-progress-bar-container {
+  width: 100%;
+  background-color: #4a5568; /* Darker grey for container */
+  border-radius: 0.5rem;
+  overflow: hidden;
+  height: 1.5rem;
+  border: 1px solid #9ae6b4; /* Green border for XP */
+  position: relative;
+}
+.xp-progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  background-color: #48bb78; /* Green fill */
+  border-radius: 0.5rem;
+  transition: width 0.3s ease-out;
+}
+.xp-text-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #1a202c;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+/* Styles for Health Bars */
+.health-bar-wrapper {
+  margin-top: 0.5rem;
+  position: relative; /* For text overlay */
+}
+.health-bar-container {
+  width: 100%;
+  background-color: #4a5568;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  height: 1.5rem;
+  border: 1px solid; /* Border will be set by specific classes */
+  position: relative; /* For text overlay */
+}
+.health-bar-fill {
+  height: 100%;
+  width: 100%; /* Starts full */
+  border-radius: 0.5rem;
+  transition: width 0.3s ease-out; /* Smooth transition for HP changes */
+}
+.player-health-bar-container {
+  border-color: #22c55e; /* More vibrant green border */
+}
+.player-health-bar-fill {
+  background-color: #22c55e; /* More vibrant green fill */
+}
+.enemy-health-bar-container {
+  border-color: #ef4444; /* More vibrant red border */
+}
+.enemy-health-bar-fill {
+  background-color: #ef4444; /* More vibrant red fill */
+}
+.hp-text-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #1a202c; /* Dark text for contrast */
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  background-color: rgba(45, 55, 72, 0.8); /* Semi-transparent background for readability */
+  border-radius: 0.5rem;
+  pointer-events: none; /* Allow mouse events to pass through */
+}
+.hp-text-overlay.resting-text {
+  /* New style for resting text */
+  background-color: rgba(99, 179, 237, 0.8); /* Blueish background for resting */
+  color: #1a202c; /* Dark text */
+  font-size: 1.2rem; /* Slightly larger font */
+  opacity: 1; /* Always visible when resting */
+}
+.game-over-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 2rem;
+  font-weight: bold;
+  z-index: 10;
+  border-radius: 1rem;
+  text-align: center;
+}
+.hidden {
+  display: none;
+}
+/* Inventory Styles */
+#inventory-list,
+#equipped-list,
+#stats-list {
+  /* Combined styles for list containers */
+  display: flex;
+  flex-direction: column;
+  gap: 5px; /* Space between list items */
+  width: 100%;
+  padding: 0.5rem;
+  background-color: #1a202c;
+  border-radius: 0.5rem;
+  border: 1px solid #4a5568;
+  max-height: 300px; /* Set max height for inventory list */
+  overflow-y: auto; /* Allow scrolling if list gets too long */
+}
+.inventory-list-item,
+.equipped-list-item {
+  /* Combined styles for list items */
+  padding: 0.25rem 0.5rem;
+  background-color: #2d3748;
+  border-radius: 0.25rem;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between; /* Align name and quantity */
+  align-items: center;
+  cursor: pointer; /* Indicate clickable */
+  transition: background-color 0.1s ease;
+}
+.inventory-list-item:hover,
+.equipped-list-item:hover {
+  background-color: #4a5568; /* Slightly lighter on hover */
+}
+.inventory-list-item .item-name {
+  flex-grow: 1; /* Allow item name to take available space */
+}
+.inventory-list-item .item-quantity {
+  font-weight: bold;
+  color: #a0aec0;
+}
+#gold-display {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #f6e05e; /* Gold color */
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #4a5568;
+  border-radius: 0.5rem;
+  border: 1px solid #ecc94b;
+}
+/* Tooltip styles */
+#item-tooltip {
+  position: absolute;
+  background-color: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  z-index: 100; /* Ensure it's above other elements */
+  pointer-events: none; /* Allow mouse events to pass through */
+  opacity: 0; /* Start hidden */
+  transition: opacity 0.2s ease-in-out;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  white-space: nowrap; /* Prevent text wrapping */
+}
+#item-tooltip.visible {
+  opacity: 1;
+}
+/* Added styles for comparison tooltip */
+#item-tooltip .comparison-section {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed #4a5568; /* Separator line */
+}
+#item-tooltip .stat-diff {
+    display: inline-block;
+    margin-left: 5px;
+    font-weight: bold;
+}
+#item-tooltip .stat-diff.positive {
+    color: #48bb78; /* Green for positive */
+}
+#item-tooltip .stat-diff.negative {
+    color: #ef4444; /* Red for negative */
+}
+#item-tooltip .stat-diff.neutral {
+    color: #a0aec0; /* Grey for no change */
+}
+/* Combat Text Styles */
+.combat-text-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Allow clicks to pass through */
+  overflow: visible; /* Allow text to leave its bounds */
+  z-index: 10; /* Ensure it's above other game elements */
+}
+.combat-text {
+  position: absolute; /* Position relative to .combat-text-overlay (which is relative to .game-container) */
+  font-size: 1.6rem; /* Bigger font size */
+  font-weight: bold;
+  color: #ef4444; /* Red for damage */
+  opacity: 1;
+  animation: fade-up-and-out 2s forwards; /* Last longer */
+  white-space: nowrap;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  /* Initial position will be set by JS */
+}
+.combat-text.critical {
+  color: #fcd34d; /* Gold for critical hits */
+  font-size: 2rem; /* Even bigger for critical */
+}
+/* Style for damage taken by player (can be same as default combat-text or different) */
+.combat-text.damage-taken {
+  color: #ef4444; /* Red for damage taken by player */
+}
+/* NEW: Style for Miss text */
+.combat-text.miss {
+  color: #a0aec0; /* Grey color for miss */
+  font-size: 1.4rem; /* Slightly smaller than damage */
+}
+@keyframes fade-up-and-out {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, 0); /* Start at calculated position, centered horizontally */
+  }
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -50px); /* Move up higher */
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -100px); /* Continue moving up and fade out even higher */
+  }
+}
+/* Responsive adjustments */
+@media (max-width: 1250px) {
+  /* Two columns on medium screens */
+  #main-game-area {
+    grid-template-columns: 1fr 1fr; /* Two columns */
+    grid-template-areas:
+      'player-stats game'
+      'right-side-panel game'; /* Right panel takes one column, game takes the other */
+  }
+  #right-side-panel .flex-row {
+    /* On smaller screens, stack inventory and equipped vertically */
+    flex-direction: column;
+  }
+  #inventory-container,
+  #equipped-items-container {
+    width: 100%; /* Take full width when stacked */
+    max-width: none; /* Remove max-width constraint */
+  }
+}
+@media (max-width: 960px) {
+  /* Single column on small screens */
+  #main-game-area {
+    grid-template-columns: 1fr; /* Single column */
+    grid-template-areas:
+      'game'
+      'player-stats'
+      'right-side-panel'; /* Right panel stacks below player stats */
+  }
+  #right-side-panel .flex-row {
+    /* Ensure stacking on very small screens too */
+    flex-direction: column;
+  }
+  #inventory-container,
+  #equipped-items-container {
+    width: 100%; /* Take full width when stacked */
+    max-width: none; /* Remove max-width constraint */
+  }
+}
+/* Styles for Help Overlay */
+#helpOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 450px; /* Increased width */
+  height: 100vh;
+  background-color: #2d3748;
+  color: #e2e8f0;
+  padding: 2rem;
+  box-shadow: 5px 0 15px -3px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  overflow-y: auto;
+  transform: translateX(-100%); /* Start off-screen to the left */
+  transition: transform 0.3s ease-out;
+}
+#helpOverlay.active {
+  transform: translateX(0); /* Slide in */
+}
+#helpOverlay .close-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #a0aec0;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+#helpOverlay .close-button:hover {
+  color: #e2e8f0;
+}
+/* New style to shift main game area when help is active */
+body.help-active #main-game-area {
+  margin-left: 450px; /* Shift the entire game area to the right, matching new width */
+}
+/* Custom Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000; /* Above all other elements */
+}
+.modal-content {
+  background-color: #2d3748;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+  color: #e2e8f0;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  position: relative;
+}
+.modal-content h3 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+.modal-content p {
+  margin-bottom: 1.5rem;
+}
+.modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+.modal-button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  text-align: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+.modal-button.confirm {
+  background-color: #ef4444; /* Red for confirm */
+  color: #1a202c;
+}
+.modal-button.confirm:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+}
+.modal-button.cancel {
+  background-color: #4a5568; /* Grey for cancel */
+  color: #e2e8f0;
+}
+.modal-button.cancel:hover {
+  background-color: #2d3748;
+  transform: translateY(-1px);
+}
