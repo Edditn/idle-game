@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Browser Idle Test</title>
+    <!-- Link to Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Link to your custom CSS file -->
+    <link href="style.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&amp;display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <!-- HELP Button -->
+    <button
+      class="absolute top-4 left-4 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-full shadow-lg z-20"
+      id="helpButton"
+      >HELP</button
+    >
+    <!-- Game Speed Controls -->
+    <div class="absolute top-4 left-28 flex items-center space-x-2 bg-gray-700 p-2 rounded-full shadow-lg z-20">
+      <span class="text-white text-sm font-bold mr-1">Speed:</span>
+      <label class="inline-flex items-center">
+        <input checked="" class="form-radio h-4 w-4 text-blue-600" name="gameSpeed" type="radio" value="1" />
+        <span class="ml-1 text-white text-sm">x1</span>
+      </label>
+      <label class="inline-flex items-center">
+        <input class="form-radio h-4 w-4 text-blue-600" name="gameSpeed" type="radio" value="2" />
+        <span class="ml-1 text-white text-sm">x2</span>
+      </label>
+      <label class="inline-flex items-center">
+        <input class="form-radio h-4 w-4 text-blue-600" name="gameSpeed" type="radio" value="3" />
+        <span class="ml-1 text-white text-sm">x3</span>
+      </label>
+    </div>
+    <!-- Settings Button -->
+    <button
+      class="absolute top-4 right-4 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-full shadow-lg"
+      id="settingsButton"
+      >⚙️</button
+    >
+    <!-- Settings Overlay -->
+    <div class="hidden fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50" id="settingsOverlay">
+      <div class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full relative">
+        <h2 class="text-2xl font-bold mb-6 text-white">Settings</h2>
+        <div class="mb-4">
+          <label class="block text-gray-300 text-sm font-bold mb-2" for="volumeControl">Volume:</label>
+          <input
+            class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+            id="volumeControl"
+            max="100"
+            min="0"
+            type="range"
+            value="50" />
+        </div>
+        <div class="mb-4 flex items-center">
+          <input class="mr-2 h-4 w-4 text-blue-600 rounded focus:ring-blue-500" id="darkModeToggle" type="checkbox" />
+          <label class="text-gray-300 text-sm font-bold" for="darkModeToggle">Enable Dark Mode</label>
+        </div>
+        <button class="button mt-6 w-full" id="saveGameBtn">Save Game</button>
+        <!-- Changed from <label> to <button> for consistent styling -->
+        <button class="button mt-4 w-full" id="loadGameBtn">Load Game</button>
+        <input accept=".txt,.json" class="hidden" id="loadFileInput" type="file" />
+        <button class="button mt-4 w-full" id="resetGameFromSettingsBtn">Reset Game</button>
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-white text-3xl" id="closeSettings">×</button>
+      </div>
+    </div>
+    <div id="main-game-area">
+      <!-- Player Stats Container (stays on left) -->
+      <div id="player-stats-container">
+        <div class="section-title">Your Stats</div>
+        <div id="stats-list">
+          <div class="stats-item">
+            <span>Max Health:</span>
+            <span id="stat-max-health"></span>
+          </div>
+          <div class="stats-item">
+            <span>Health Regen:</span>
+            <span id="stat-health-regen"></span>
+          </div>
+          <div class="stats-item">
+            <span>Armor:</span>
+            <span id="stat-armor"></span>
+          </div>
+          <div class="stats-item">
+            <span>Attack Power:</span>
+            <span id="stat-damage"></span>
+          </div>
+          <div class="stats-item">
+            <span>Critical Chance:</span>
+            <span id="stat-critical-chance"></span>
+          </div>
+          <!-- NEW: Haste Stat Display -->
+          <div class="stats-item">
+            <span>Haste:</span>
+            <span id="stat-haste"></span>
+          </div>
+        </div>
+        <!-- Moved Auto-Rest checkbox here -->
+        <div class="flex items-center mt-4">
+          <input checked="" class="mr-2 h-4 w-4 text-blue-600 rounded focus:ring-blue-500" id="autoRestCheckbox" type="checkbox" />
+          <label class="text-gray-300 text-sm font-bold" for="autoRestCheckbox">Auto-Rest at 35% HP</label>
+        </div>
+        <!-- Removed difficulty checkboxes here -->
+        <div class="mt-4 w-full">
+          <button class="button" id="forceRestBtn">Force Rest</button>
+        </div>
+      </div>
+      <!-- Game Container (stays in center) -->
+      <div class="game-container relative">
+        <div class="game-over-overlay hidden" id="ghostFormOverlay">
+          <p>GHOST FORM</p>
+          <p class="text-lg font-normal mt-4">Time remaining:</p>
+          <div class="progress-bar-container mt-4" style="width: 80%; border-color: #a0aec0">
+            <div class="progress-bar-fill" id="ghost-form-progress-fill" style="background-color: #a0aec0; transition: width linear"></div>
+          </div>
+          <div class="text-xl mt-2" id="ghost-form-timer-text">20s</div>
+        </div>
+        <div class="game-over-overlay hidden" id="gameOverOverlay">
+          <p>GAME OVER!</p>
+          <p class="text-lg font-normal mt-4">YOU DIED</p>
+          <button class="button mt-8" id="restartGameBtn">Restart Game</button>
+        </div>
+        <!-- NEW: Zone Display with Navigation Buttons -->
+        <div class="zone-navigation-container flex items-center justify-center gap-4 mb-4">
+          <button class="button px-3 py-2 text-xl" id="prevZoneBtn">&lt;</button>
+          <h2 class="text-2xl font-bold text-center text-white" id="main-current-zone-display"></h2>
+          <button class="button px-3 py-2 text-xl" id="nextZoneBtn">&gt;</button>
+        </div>
+        <div class="character-stats">
+          <!-- Editable Player Name Input -->
+          <input
+            type="text"
+            id="player-name-input"
+            class="bg-transparent border-none text-2xl font-bold text-white text-center w-full focus:outline-none"
+          />
+          <!-- Player Level Display -->
+          <div class="text-xl text-center text-gray-300" id="player-level-display"></div>
+          <div class="health-bar-wrapper relative">
+            <div class="health-bar-container player-health-bar-container">
+              <div class="health-bar-fill player-health-bar-fill" id="player-hp-bar-fill"></div>
+              <div class="hp-text-overlay" id="player-hp-text-overlay"></div>
+            </div>
+          </div>
+          <div class="attack-progress-section">
+            <div class="section-title">Next Attack</div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill" id="player-attack-progress-fill"></div>
+              <div class="attack-timer-overlay" id="player-attack-timer-text"></div>
+            </div>
+          </div>
+        </div>
+        <div class="enemy-stats">
+          <!-- Enemy Name Display -->
+          <div class="text-2xl font-bold text-white text-center w-full" id="enemy-name-display"></div>
+          <!-- Enemy Level Display -->
+          <div class="text-xl text-center text-gray-300" id="enemy-level-display"></div>
+          <div class="stats-item">
+            <span id="current-zone-display"></span>
+          </div>
+          <div class="health-bar-wrapper relative">
+            <div class="health-bar-container enemy-health-bar-container">
+              <div class="health-bar-fill enemy-health-bar-fill" id="enemy-hp-bar-fill"></div>
+              <div class="hp-text-overlay" id="enemy-hp-text-overlay"></div>
+            </div>
+          </div>
+          <div class="attack-progress-section">
+            <div class="section-title flex justify-between items-center">
+              <span>Next Attack</span>
+              <span class="text-sm text-gray-400" id="enemy-attack-power-display">AP: 0</span>
+            </div>
+            <div class="progress-bar-container enemy-progress-bar-container">
+              <div class="progress-bar-fill enemy-attack-progress-fill" id="enemy-attack-progress-fill"></div>
+              <div class="attack-timer-overlay" id="enemy-attack-timer-text"></div>
+            </div>
+          </div>
+        </div>
+        <div class="game-log">
+          <div class="section-title">Battle Log</div>
+          <div class="log-area" id="log-area"></div>
+        </div>
+        <div class="xp-progress">
+          <div class="section-title">Experience</div>
+          <div class="xp-progress-bar-container">
+            <div class="xp-progress-bar-fill" id="xp-progress-fill"></div>
+            <div class="xp-text-overlay" id="xp-text-overlay">0/100 XP</div>
+          </div>
+        </div>
+        <div class="controls flex justify-center"></div>
+        <div class="combat-text-overlay" id="combat-text-overlay"></div>
+      </div>
+      <!-- NEW: Right Side Panel Container -->
+      <div id="right-side-panel">
+        <!-- Inner container for Inventory and Equipped Items, side-by-side -->
+        <div class="flex flex-row gap-4 w-full">
+          <!-- Using flex-row for side-by-side -->
+          <!-- Inventory Container (now part of right-side-panel) -->
+          <div class="flex-1" id="inventory-container">
+            <!-- Added flex-1 -->
+            <div class="section-title">Inventory</div>
+            <div id="gold-display">GOLD: 0</div>
+            <div id="inventory-list"></div>
+            <div class="flex flex-col gap-2 mt-4">
+              <button class="button w-full" id="sortInventoryBtn">Sort by Level</button>
+              <button class="button w-full" id="sellAllBtn">Sell All Items</button>
+            </div>
+            <!-- Auto-Rest checkbox and difficulty checkboxes moved to player-stats-container -->
+          </div>
+          <!-- Equipped Items Container (now part of right-side-panel, next to inventory) -->
+          <div class="flex-1" id="equipped-items-container">
+            <!-- Added flex-1 -->
+            <div class="section-title">Equipped Items</div>
+            <div id="equipped-list"></div>
+          </div>
+        </div>
+        <!-- Inventory Controls Container (now below inventory and equipped items) -->
+        <div class="mt-4 w-full" id="inventory-controls-container">
+          <!-- Force Rest button moved to player-stats-container -->
+        </div>
+        <!-- Talent Points Display and Grid -->
+        <div class="mt-4 w-full" id="talent-container">
+          <div class="section-title">Talents</div>
+          <div id="talent-points-display">Unspent Talent Points: 0</div>
+          <div id="talent-grid">
+            <button id="attackSpeedTalent" class="talent-button">
+              Swift Strikes
+              <div class="rank-display">0/5</div>
+              <div class="talent-tooltip">
+                <div class="talent-tooltip-desc">Increases attack speed by 5% per rank</div>
+                <div class="talent-tooltip-ranks"></div>
+              </div>
+            </button>
+            <div class="bottom-row">
+              <button id="criticalStrikeTalentBtn" class="talent-button">
+                Deadly Precision
+                <div class="rank-display">0/5</div>
+                <div class="talent-tooltip">
+                  <div class="talent-tooltip-desc">Increases critical strike chance by 3% per rank<br>(Requires Swift Strikes 5/5)</div>
+                  <div class="talent-tooltip-ranks"></div>
+                </div>
+              </button>
+              <button id="healthRegenTalentBtn" class="talent-button">
+                Vitality
+                <div class="rank-display">0/5</div>
+                <div class="talent-tooltip">
+                  <div class="talent-tooltip-desc">Increases health regeneration by 0.5 per rank<br>(Requires Swift Strikes 5/5)</div>
+                  <div class="talent-tooltip-ranks"></div>
+                </div>
+              </button>
+              <button id="scalingArmorTalentBtn" class="talent-button">
+                Iron Skin
+                <div class="rank-display">0/5</div>
+                <div class="talent-tooltip">
+                  <div class="talent-tooltip-desc">Increases armor by 100 per rank (scales with level)<br>(Requires Swift Strikes 5/5)</div>
+                  <div class="talent-tooltip-ranks"></div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Item Tooltip -->
+    <div class="hidden" id="item-tooltip"></div>
+    <!-- Help Overlay -->
+    <div id="helpOverlay">
+      <button class="close-button">×</button>
+      <h2 class="text-2xl font-bold mb-4 text-white">How to Play</h2>
+      <div class="text-gray-300 text-lg leading-relaxed">
+        <p class="mb-2">Welcome to Edd's Test Project, an idle game where your character battles enemies automatically!</p>
+        <br />
+        <p class="mb-2">
+          <strong>Controls</strong>
+          Hold SHIFT and LEFT-CLICK to sell individual items from your inventory.
+        </p>
+        <br />
+        <p class="mb-2">
+          <strong>Your Character:</strong>
+          Displays your current level, health, damage, armor(and %reduction), and critical chance. Your stats increase as you level up.
+        </p>
+        <br />
+        <p class="mb-2">
+          <strong>Current Enemy:</strong>
+          Shows the enemy you are currently fighting, their level, and health. Enemies scale with your level, providing a continuous
+          challenge.
+        </p>
+        <br />
+        <p class="mb-2">
+          <strong>Battle Log:</strong>
+          Keeps a record of combat events, including damage dealt and taken, and items found.
+        <br />
+        <p class="mb-2">
+          <strong>Experience:</strong>
+          Defeating enemies grants you XP. Fill the XP bar to level up and become stronger!
+        </p>
+        <br />
+        <p class="mb-2">
+          <strong>Selling</strong>
+          SELL ALL button really sells everything, even items acquired AFTER clicking the SELL ALL BUTTON!
+        </p>
+        <br />
+        <p class="mb-2">
+          <strong>Inventory:</strong>
+          Here you'll find all the items you pick up from defeated enemies. Items have different levels and rarities, which boost their
+          stats.
+        </p>
+        <br />
+        <p class="mb-2">
+          <strong>Equipped Items:</strong>
+          Drag items from your inventory to equip them. Equipping items will boost your character's stats. Click an equipped item to unequip
+          it.
+        </p>
+        <br />
+        <p class="mb-2">
+          <strong>Gold:</strong>
+          Earn gold from enemies to use for future features (coming soon!).
+        </p>
+        <br />
+        <p class="mb-2">
+          <strong>Auto-Rest:</strong>
+          Check this box to automatically rest when your HP drops below 35% and no enemy is present. Resting will increase your current
+          health regen stat x15!
+        </p>
+        <br />
+        <p class="mb-2">
+          <strong>Force Rest:</strong>
+          Click this button to manually enter the resting state, even if you are in combat. Your current enemy will flee.
+        </p>
+        <br />
+        <p class="mb-2">
+          <strong>Settings:</strong>
+          The gear icon in the top right opens game settings, including a reset game option.
+        </p>
+        <br />
+        <p class="mb-2">Good luck, adventurer!</p>
+        <br />
+      </div>
+    </div>
+    <!-- Custom Confirmation Modal -->
+    <div class="modal-overlay hidden" id="confirmationModalOverlay">
+      <div class="modal-content">
+        <h3 id="confirmationModalTitle"></h3>
+        <p id="confirmationModalMessage"></p>
+        <div class="modal-buttons">
+          <button class="modal-button confirm" id="confirmButton">Confirm</button>
+          <button class="modal-button cancel" id="cancelButton">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <!-- Link to your main JavaScript file -->
+    <!-- IMPORTANT: The 'type="module"' attribute is crucial for ES Modules to work. -->
+    <script src="game.js" type="module"></script>
+  </body>
+</html>
