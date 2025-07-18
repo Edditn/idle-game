@@ -83,9 +83,11 @@ const REST_ENTRY_HP_THRESHOLD = 0.85; // Cannot rest at or above 85% HP
 const MAX_LEVEL = 100; // Define maximum player level
 // const MAX_LEVEL_DIFFERENCE = 4; // Monster can be max 4 levels above player (REMOVED)
 const ENEMY_LEVEL_RANGE = 2; // Enemies will be +/- 2 levels from player's level
+const ENEMY_SPAWN_DELAY_MS = 1500; // 0.25 second delay between enemy spawns
 let isGameOver = false; // Game over flag (for full reset)
 let isGhostForm = false; // Ghost form flag
 let isResting = false; // New: Resting flag
+let isEnemySpawnPending = false; // Track if we're waiting for an enemy spawn
 let autoRestEnabled = true; // New: Flag for auto-rest checkbox state - SET TO TRUE BY DEFAULT
 // Removed levelRangeBoost as it's no longer needed
 let inventorySortOrder = 'levelDesc'; // New: Default sort order for inventory (level descending)
@@ -179,13 +181,13 @@ const items = {
 // Removed Leather items, Dagger, and Copper Sword. Significantly increased drop chances.
 const lootTable = [
   { item: items['Coin'], minQuantity: 3, maxQuantity: 8, dropChance: 5 }, // Kept the same
-  { item: items['Iron Sword'], minQuantity: 1, maxQuantity: 1, dropChance: 2.5 }, // Tripled
-  { item: items['Iron Dagger'], minQuantity: 1, maxQuantity: 1, dropChance: 2.5 }, // Tripled
-  { item: items['Iron Helmet'], minQuantity: 1, maxQuantity: 1, dropChance: 2.5 }, // More than doubled
-  { item: items['Iron Pauldrons'], minQuantity: 1, maxQuantity: 1, dropChance: 2.5 }, // More than doubled
-  { item: items['Iron Chestplate'], minQuantity: 1, maxQuantity: 1, dropChance: 2.5 }, // More than doubled
-  { item: items['Iron Greaves'], minQuantity: 1, maxQuantity: 1, dropChance: 2.5 }, // More than doubled
-  { item: items['Iron Boots'], minQuantity: 1, maxQuantity: 1, dropChance: 2.5 } // More than doubled
+  { item: items['Iron Sword'], minQuantity: 1, maxQuantity: 1, dropChance: 1.5 }, // Tripled
+  { item: items['Iron Dagger'], minQuantity: 1, maxQuantity: 1, dropChance: 1.5 }, // Tripled
+  { item: items['Iron Helmet'], minQuantity: 1, maxQuantity: 1, dropChance: 1.5 }, // More than doubled
+  { item: items['Iron Pauldrons'], minQuantity: 1, maxQuantity: 1, dropChance: 1.5 }, // More than doubled
+  { item: items['Iron Chestplate'], minQuantity: 1, maxQuantity: 1, dropChance: 1.5 }, // More than doubled
+  { item: items['Iron Greaves'], minQuantity: 1, maxQuantity: 1, dropChance: 1.5 }, // More than doubled
+  { item: items['Iron Boots'], minQuantity: 1, maxQuantity: 1, dropChance: 1.5 } // More than doubled
 ];
 let inventory = []; // Changed to an ARRAY to store item INSTANCES
 // NEW: Talent Points
@@ -1371,8 +1373,27 @@ function calculatePlayerMissChance(playerLevel, enemyLevel) {
 }
 /**
  * Advances to the next enemy, increasing its difficulty slightly.
+ * @param {boolean} [immediate=false] - If true, spawns enemy immediately without delay
  */
-function nextEnemy() {
+function nextEnemy(immediate = false) {
+  if (!immediate && isEnemySpawnPending) return; // Prevent multiple pending spawns
+  
+  if (!immediate) {
+    isEnemySpawnPending = true;
+    setTimeout(() => {
+      spawnNewEnemy();
+      isEnemySpawnPending = false;
+    }, ENEMY_SPAWN_DELAY_MS / gameSpeedMultiplier);
+    return;
+  }
+  
+  spawnNewEnemy();
+}
+
+/**
+ * Helper function to handle the actual enemy spawn logic
+ */
+function spawnNewEnemy() {
   // Get enemy names for the current zone
   const enemyNamesForZone = currentZone.enemyNames;
   const newEnemyName = enemyNamesForZone[Math.floor(Math.random() * enemyNamesForZone.length)];
