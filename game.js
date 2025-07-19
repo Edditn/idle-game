@@ -1879,6 +1879,12 @@ function loadAutosave() {
 
       const loadedState = JSON.parse(savedGame);
       
+      // Clear any existing intervals before loading new state
+      clearInterval(ghostFormInterval);
+      clearInterval(playerGameInterval);
+      clearInterval(enemyGameInterval);
+      clearInterval(healthRegenInterval);
+      
       // Apply loaded state
       player = loadedState.player;
       enemy = loadedState.enemy;
@@ -1935,7 +1941,17 @@ window.onload = function () {
       // If autosave was loaded successfully, start all necessary game systems
       applyGameSpeed(); // Restart game intervals with proper speed
       if (isGhostForm) {
+          // Properly initialize ghost form UI and state
+          ghostFormOverlayEl.classList.remove('hidden');
+          ghostFormProgressFillEl.style.transitionDuration = '0s';
+          ghostFormProgressFillEl.style.width = '100%';
+          void ghostFormProgressFillEl.offsetWidth;
+          ghostFormTimer = ghostFormTimer || GHOST_FORM_DURATION_MS / 1000;
           ghostFormInterval = setInterval(updateGhostForm, GHOST_FORM_UPDATE_INTERVAL_MS);
+      } else {
+          // Ensure ghost form is properly hidden if not active
+          ghostFormOverlayEl.classList.add('hidden');
+          clearInterval(ghostFormInterval);
       }
   }
   
@@ -1972,9 +1988,6 @@ window.onload = function () {
   });
   // Start the continuous game loop for progress bars and timers
   requestAnimationFrame(gameLoop);
-  // Call resetGame immediately when the window loads to start the game
-  resetGame();
-  // Removed previous console.log here, as MutationObserver will provide more detailed info
   // Settings Overlay Logic
   settingsButton.addEventListener('click', () => {
     settingsOverlay.classList.remove('hidden');
