@@ -1,3 +1,20 @@
+// Global error handler for unhandled exceptions
+window.onerror = function(message, source, lineno, colno, error) {
+    const errorDisplay = document.getElementById('errorMessageDisplay');
+    if (errorDisplay) {
+        errorDisplay.textContent = `Error: ${message} (Line: ${lineno})`;
+        errorDisplay.classList.remove('hidden');
+        // You might want to hide it after a few seconds
+        setTimeout(() => {
+            errorDisplay.classList.add('hidden');
+        }, 10000); // Hide after 10 seconds
+    }
+    console.error("Global Error Caught:", { message, source, lineno, colno, error });
+    // Return true to suppress the browser's default error handling (e.g., console output)
+    // For debugging, you might want to return false initially to see both.
+    return false;
+};
+
 // NEW GLOBAL CONSTANT FOR ARMOR K VALUE
 const ARMOR_K_VALUE = 1500; // Adjusted K value to make early-game armor more impactful
 
@@ -51,7 +68,7 @@ const levelZones = [
   { name: 'Voidwell', minLevel: 70, maxLevel: 80, enemyNames: ['Unshaper', 'Flicker', 'Watcher'] },
   { name: 'Crimvale', minLevel: 80, maxLevel: 90, enemyNames: ['Gorehide', 'Thornsoul', 'Warden'] },
   { name: 'Aurelia', minLevel: 90, maxLevel: 100, enemyNames: ['Gildborn ', 'Exultant', 'Mirrorkin'] },
-  //{ name: 'Shardspire', minLevel: 100, maxLevel: Infinity, enemyNames: ['Fracture', 'Chrono', 'Eversplit'] } // For 100+
+  { name: 'Shardspire', minLevel: 100, maxLevel: Infinity, enemyNames: ['Fracture', 'Chrono', 'Eversplit'] } // For 100+
 ];
 let currentZone = levelZones[0]; // Initial zone is Ashfen
 // Base game intervals (these will be divided by gameSpeedMultiplier)
@@ -76,7 +93,7 @@ const REST_ENTRY_HP_THRESHOLD = 0.85; // Cannot rest at or above 85% HP
 const MAX_LEVEL = 100; // Define maximum player level
 // const MAX_LEVEL_DIFFERENCE = 4; // Monster can be max 4 levels above player (REMOVED)
 const ENEMY_LEVEL_RANGE = 2; // Enemies will be +/- 2 levels from player's level
-const ENEMY_SPAWN_DELAY_MS = 1500; // 0.25 second delay between enemy spawns
+const ENEMY_SPAWN_DELAY_MS = 2000; // 0.25 second delay between enemy spawns
 let isGameOver = false; // Game over flag (for full reset)
 let isGhostForm = false; // Ghost form flag
 let isResting = false; // New: Resting flag
@@ -598,7 +615,7 @@ function showTooltip(event, itemInstance, isInventoryItem = false) {
           }
           tooltipContent += `<br>${equippedItemNameDisplay} (Lvl ${equippedItemForComparison.itemLevel})`;
           if (equippedItemForComparison.rarity) {
-              tooltipContent += `<br><span style="color: ${rarities[equippedItemForComparison.rarity].color};">${equippedItemForComparison.rarity}</span>`;
+              tooltipContent += `<br><span style="color: ${rarities[equippedItemForComparison.rarity].color};">${rarities[equippedItemForComparison.rarity].rarity}</span>`;
           }
 
           const equippedEffectiveStatLevel = equippedItemForComparison.itemLevel + (rarities[equippedItemForComparison.rarity]?.levelBoost || 0);
@@ -882,28 +899,52 @@ function updateTalentButtonStates() {
     scalingArmor: scalingArmorTalentBtn
   };
 
-  // Get Swift Strikes talent status
   const swiftStrikesMaxed = talents.attackSpeed.currentRank >= talents.attackSpeed.maxRank;
+  
+  // Determine if any second-row talent has points invested but is not yet maxed
+  let activeSecondRowTalentKey = null;
+  const secondRowTalentKeys = ['criticalStrike', 'healthRegen', 'scalingArmor'];
+
+  for (const key of secondRowTalentKeys) {
+    const talent = talents[key];
+    if (talent.currentRank > 0 && talent.currentRank < talent.maxRank) {
+      activeSecondRowTalentKey = key;
+      break; // Found an active, non-maxed second-row talent
+    }
+  }
 
   // Update each talent button
   for (const [talentKey, button] of Object.entries(talentButtons)) {
     const talent = talents[talentKey];
+    let isDisabled = false;
+
+    if (talentKey === 'attackSpeed') {
+      // Logic for Swift Strikes (first row)
+      isDisabled = unspentTalentPoints === 0 || talent.currentRank >= talent.maxRank;
+    } else {
+      // Logic for second row talents
+      // 1. Must have unspent points and not be maxed
+      isDisabled = unspentTalentPoints === 0 || talent.currentRank >= talent.maxRank;
+      
+      // 2. Swift Strikes must be maxed
+      if (!swiftStrikesMaxed) {
+        isDisabled = true;
+      }
+
+      // 3. Apply lock-in logic for second row
+      if (swiftStrikesMaxed) { // Only apply this if Swift Strikes is maxed
+        if (activeSecondRowTalentKey) {
+          // If there's an active (non-maxed) second-row talent, lock others
+          if (talentKey !== activeSecondRowTalentKey) {
+            isDisabled = true;
+          }
+        }
+        // If no activeSecondRowTalentKey, all second-row talents are available
+        // (assuming swiftStrikesMaxed and unspent points and not maxed individually)
+      }
+    }
     
-    // Check if any of the three dependent talents have points invested
-    const hasInvestedPoints = Object.entries(talents).some(([key, t]) => 
-      key !== 'attackSpeed' && t.currentRank > 0
-    );
-    
-    // For talents other than Swift Strikes, check multiple conditions
-    const requiresSwiftStrikes = talentKey !== 'attackSpeed' && !swiftStrikesMaxed;
-    // If we've invested in a dependent talent, only allow further investment in that talent
-    const lockedToOtherTalent = hasInvestedPoints && talentKey !== 'attackSpeed' && 
-      talent.currentRank === 0;
-    
-    button.disabled = unspentTalentPoints === 0 || 
-      talent.currentRank >= talent.maxRank || 
-      requiresSwiftStrikes || 
-      lockedToOtherTalent;
+    button.disabled = isDisabled;
     
     button.querySelector('.rank-display').textContent = `${talent.currentRank}/${talent.maxRank}`;
     
@@ -1047,7 +1088,7 @@ function applyHealthRegen() {
       effectiveHealthRegen *= 15; // Apply 15x bonus when resting (no cap when resting)
     } else {
       // Apply cap only when not resting
-      const maxRegenAmount = player.maxHp * HEALTH_REGEN_CAP_PERCENTAGE;
+      const maxRegenAmount = player.maxHp * HEALTH_REGEN_STAT_CAP_PERCENTAGE;
       effectiveHealthRegen = Math.min(effectiveHealthRegen, maxRegenAmount);
     }
 
@@ -1106,6 +1147,10 @@ function startResting() {
   if (enemy.hp > 0) {
     logMessage(`${enemy.name} runs away!`);
     enemy.hp = 0; // Ensure enemy is considered defeated for nextEnemy() logic
+    clearInterval(enemyGameInterval); // Stop enemy attack interval
+    enemyAttackProgressFillEl.style.width = '0%'; // Reset enemy attack bar visually
+    enemyAttackTimerTextEl.textContent = ''; // Clear enemy timer text
+    playerAttackStartTime = Date.now(); // Reset player attack timer when enemy runs away
     updateUI(); // Update UI to show enemy HP as 0
   }
   isResting = true;
@@ -1343,8 +1388,9 @@ function resetGame() {
   }
   // Set initial zone to Ashfen
   currentZone = levelZones[0];
-  // Initialize enemy stats based on current zone and player level
-  nextEnemy(); // Call nextEnemy to set up the first enemy based on zone/player level
+  // Initialize enemy stats based on current zone and player level *immediately*
+  // Call spawnNewEnemy directly, bypassing the delay for initial setup
+  spawnNewEnemy(); 
   // Update all UI elements to reflect the reset state
   updateInventoryUI(); // Update inventory display
   updateGoldUI(); // Update gold display
@@ -1362,7 +1408,6 @@ function resetGame() {
 function applyGameSpeed() {
   // Clear existing intervals to prevent multiple loops running
   clearInterval(playerGameInterval);
-  clearInterval(enemyGameInterval);
   clearInterval(healthRegenInterval); // Clear health regen interval too
   // Calculate new intervals based on multiplier and Haste
   // Haste reduces the interval, so a higher haste means a smaller interval
@@ -1371,15 +1416,14 @@ function applyGameSpeed() {
   // Calculate haste factor, including talent bonuses
   const hasteFactor = 1 + (player.haste / 100); // If haste is 100, factor is 2. If 0, factor is 1.
   const currentPlayerAttackInterval = BASE_PLAYER_ATTACK_INTERVAL_MS / gameSpeedMultiplier / hasteFactor;
-  const currentEnemyAttackInterval = BASE_ENEMY_ATTACK_INTERVAL_MS / gameSpeedMultiplier;
   const currentHealthRegenInterval = BASE_HEALTH_REGEN_INTERVAL_MS / gameSpeedMultiplier;
   // Restart intervals with new speeds
   playerGameInterval = setInterval(playerAttack, currentPlayerAttackInterval);
   playerAttackStartTime = Date.now(); // Reset start time for player attack
-  enemyGameInterval = setInterval(enemyAttack, currentEnemyAttackInterval);
-  enemyAttackStartTime = Date.now(); // Reset start time for enemy attack
   healthRegenInterval = setInterval(applyHealthRegen, currentHealthRegenInterval); // Restart health regen
   //logMessage(`Game speed set to x${gameSpeedMultiplier}.`);
+  // NOTE: enemyGameInterval is now managed directly by spawnNewEnemy() and playerAttack()
+  // No need to restart it here.
 }
 /**
  * Calculates the player's miss chance based on the level difference with the enemy.
@@ -1467,6 +1511,21 @@ function spawnNewEnemy() {
   enemyHpBarFillEl.style.width = '100%'; // Set width to 100%
   void enemyHpBarFillEl.offsetWidth; // Force reflow
   enemyHpBarFillEl.style.transition = 'width 0.3s ease-out'; // Re-enable transition
+  
+  // Reset enemy attack timer and restart interval for the NEW enemy
+  enemyAttackStartTime = Date.now();
+  clearInterval(enemyGameInterval); // Clear any old interval before setting a new one
+  enemyGameInterval = setInterval(enemyAttack, BASE_ENEMY_ATTACK_INTERVAL_MS / gameSpeedMultiplier);
+
+  // Reset player attack timer for the new enemy
+  playerAttackStartTime = Date.now();
+  // CRITICAL FIX: Also clear and restart the player's attack interval
+  // This ensures the first attack after spawn respects the full interval duration.
+  clearInterval(playerGameInterval);
+  const hasteFactor = 1 + (player.haste / 100);
+  const currentPlayerAttackInterval = BASE_PLAYER_ATTACK_INTERVAL_MS / gameSpeedMultiplier / hasteFactor;
+  playerGameInterval = setInterval(playerAttack, currentPlayerAttackInterval);
+
   updateUI(); // Ensure UI is updated when a new enemy appears
   console.log(`[nextEnemy] Spawned: ${enemy.name} (Level: ${enemy.level}), HP: ${enemy.hp}/${enemy.maxHp}`);
 }
@@ -1489,6 +1548,12 @@ function applyDamageVariance(baseDamage, variancePercentage, minVarMultiplier = 
  */
 function playerAttack() {
   if (isGameOver || isGhostForm || isResting) return; // Do nothing if game is over, in ghost form, or resting
+
+  // NEW: Do not attack if enemy is defeated and a new one is pending
+  if (enemy.hp <= 0 && isEnemySpawnPending) {
+    return;
+  }
+
   console.log(`[playerAttack] Before attack: Enemy HP: ${enemy.hp}/${enemy.maxHp}`);
 
   const currentMissChance = calculatePlayerMissChance(player.level, enemy.level);
@@ -1514,7 +1579,15 @@ function playerAttack() {
   updateUI();
   if (enemy.hp <= 0) {
     enemy.hp = 0; // Ensure HP doesn't go negative on display
-    //logMessage(`${enemy.name} has been defeated!`);
+    logMessage(`${enemy.name} has been defeated!`); // Log message here
+    // Stop enemy attack interval immediately upon defeat
+    clearInterval(enemyGameInterval);
+    enemyAttackProgressFillEl.style.width = '0%'; // Reset enemy attack bar visually
+    enemyAttackTimerTextEl.textContent = ''; // Clear enemy timer text
+
+    // Reset player attack timer when enemy is defeated
+    playerAttackStartTime = Date.now();
+
     // Item drop logic based on loot table
     for (const lootEntry of lootTable) {
       const dropRoll = Math.random() * 100; // Roll a number between 0 and 99.99...
@@ -1626,25 +1699,40 @@ function enemyAttack() {
  */
 function gameLoop() {
   if (!isGameOver && !isGhostForm) {
-    // Only update combat bars if not in special states (excluding resting for now)
     const currentTime = Date.now();
     // Calculate haste factor, including talent bonuses
     const hasteFactor = 1 + (player.haste / 100); // If haste is 100, factor is 2. If 0, factor is 1.
     // Get current intervals based on game speed multiplier AND haste
     const currentPlayerAttackInterval = BASE_PLAYER_ATTACK_INTERVAL_MS / gameSpeedMultiplier / hasteFactor;
     const currentEnemyAttackInterval = BASE_ENEMY_ATTACK_INTERVAL_MS / gameSpeedMultiplier;
+
     // Update Player Attack Bar and Timer
-    const playerTimeElapsed = currentTime - playerAttackStartTime;
-    const playerProgress = (playerTimeElapsed / currentPlayerAttackInterval) * 100;
-    playerAttackProgressFillEl.style.width = `${Math.min(100, playerProgress)}%`;
-    const playerTimeRemaining = (currentPlayerAttackInterval - playerTimeElapsed) / 1000;
-    playerAttackTimerTextEl.textContent = `${Math.max(0, playerTimeRemaining).toFixed(1)}s`;
+    // If enemy is dead or spawning, player attack progress should be 0 and text "Waiting..."
+    if (enemy.hp <= 0) { // Check if enemy is defeated (or not yet spawned)
+      playerAttackProgressFillEl.style.width = '0%';
+      playerAttackTimerTextEl.textContent = 'Waiting...';
+      // No need to reset playerAttackStartTime here, it's handled when enemy is defeated or new enemy spawns.
+    } else {
+      const playerTimeElapsed = currentTime - playerAttackStartTime;
+      const playerProgress = (playerTimeElapsed / currentPlayerAttackInterval) * 100;
+      playerAttackProgressFillEl.style.width = `${Math.min(100, playerProgress)}%`;
+      const playerTimeRemaining = (currentPlayerAttackInterval - playerTimeElapsed) / 1000;
+      playerAttackTimerTextEl.textContent = `${Math.max(0, playerTimeRemaining).toFixed(1)}s`;
+    }
+
     // Update Enemy Attack Bar and Timer
-    const enemyTimeElapsed = currentTime - enemyAttackStartTime;
-    const enemyProgress = (enemyTimeElapsed / currentEnemyAttackInterval) * 100;
-    enemyAttackProgressFillEl.style.width = `${Math.min(100, enemyProgress)}%`;
-    const enemyTimeRemaining = (currentEnemyAttackInterval - enemyTimeElapsed) / 1000;
-    enemyAttackTimerTextEl.textContent = `${Math.max(0, enemyTimeRemaining).toFixed(1)}s`;
+    // If enemy is dead or spawning, enemy attack progress should be 0 and text "Spawning..."
+    if (enemy.hp <= 0) { // Check if enemy is defeated (or not yet spawned)
+      enemyAttackProgressFillEl.style.width = '0%';
+      enemyAttackTimerTextEl.textContent = 'Spawning...';
+    } else {
+      const enemyTimeElapsed = currentTime - enemyAttackStartTime;
+      const enemyProgress = (enemyTimeElapsed / currentEnemyAttackInterval) * 100;
+      enemyAttackProgressFillEl.style.width = `${Math.min(100, enemyProgress)}%`;
+      const enemyTimeRemaining = (currentEnemyAttackInterval - enemyTimeElapsed) / 1000;
+      enemyAttackTimerTextEl.textContent = `${Math.max(0, enemyTimeRemaining).toFixed(1)}s`;
+    }
+
     // The auto-rest check in gameLoop is now primarily for when an enemy is NOT present (e.g., after a manual rest or fleeing)
     // The primary auto-rest trigger after enemy defeat is now in playerAttack().
     // This condition here is still valid if player HP drops low outside of combat and an enemy isn't present.
@@ -1921,7 +2009,7 @@ function loadAutosave() {
       // Clear any existing intervals before loading new state
       clearInterval(ghostFormInterval);
       clearInterval(playerGameInterval);
-      clearInterval(enemyGameInterval);
+      clearInterval(enemyGameInterval); // Clear enemy interval here too
       clearInterval(healthRegenInterval);
       
       // Apply loaded state
@@ -1971,220 +2059,238 @@ function loadAutosave() {
 }
 
 window.onload = function () {
-  // Set initial xpToNextLevel based on level 1
-  player.xpToNextLevel = calculateXpToNextLevel(player.level);
-  
-  // Try to load autosave or start new game
-  if (!loadAutosave()) {
-      resetGame(); // Start new game if no autosave exists
-      logMessage("Welcome to Edd's Test Project!"); // Initial message for new games
-  } else {
-      // If autosave was loaded successfully, start all necessary game systems
-      applyGameSpeed(); // Restart game intervals with proper speed
-      if (isGhostForm) {
-          // Properly initialize ghost form UI and state
-          ghostFormOverlayEl.classList.remove('hidden');
-          ghostFormProgressFillEl.style.transitionDuration = '0s';
-          ghostFormProgressFillEl.style.width = '100%';
-          void ghostFormProgressFillEl.offsetWidth;
-          ghostFormTimer = ghostFormTimer || GHOST_FORM_DURATION_MS / 1000;
-          ghostFormInterval = setInterval(updateGhostForm, GHOST_FORM_UPDATE_INTERVAL_MS);
-      } else {
-          // Ensure ghost form is properly hidden if not active
-          ghostFormOverlayEl.classList.add('hidden');
-          clearInterval(ghostFormInterval);
-      }
-  }
-  
-  // Set up autosave interval (every 60 seconds)
-  setInterval(autoSaveGame, 60000);
-  
-  // These updates are needed regardless of new game or loaded game
-  updateUI();
-  updateGoldUI();
-  updatePlayerStats();
-  updateInventoryUI();
-  updateEquippedItemsUI();
-  updateZoneButtons();
-  restartGameBtn.onclick = resetGame; // Set restart button action to directly call resetGame
-  // Event delegation for inventory and equipped items
-  inventoryListEl.addEventListener('click', event => {
-    const listItem = event.target.closest('.inventory-list-item');
-    if (listItem) {
-      const itemId = listItem.dataset.itemId; // Get the unique ID
-      if (event.ctrlKey) {
-        sellIndividualItem(itemId); // Sell item if CTRL is held
-      } else {
-        equipItem(itemId); // Otherwise, equip/unequip
-      }
+  try {
+    // Set initial xpToNextLevel based on level 1
+    player.xpToNextLevel = calculateXpToNextLevel(player.level);
+    
+    // Try to load autosave or start new game
+    if (!loadAutosave()) {
+        resetGame(); // Start new game if no autosave exists
+        logMessage("Welcome to Edd's Test Project!"); // Initial message for new games
+    } else {
+        // If autosave was loaded successfully, start all necessary game systems
+        applyGameSpeed(); // Restart game intervals with proper speed
+        if (isGhostForm) {
+            // Properly initialize ghost form UI and state
+            ghostFormOverlayEl.classList.remove('hidden');
+            ghostFormProgressFillEl.style.transitionDuration = '0s';
+            ghostFormProgressFillEl.style.width = '100%';
+            void ghostFormProgressFillEl.offsetWidth;
+            ghostFormTimer = ghostFormTimer || GHOST_FORM_DURATION_MS / 1000;
+            ghostFormInterval = setInterval(updateGhostForm, GHOST_FORM_UPDATE_INTERVAL_MS);
+        } else {
+            // Ensure ghost form is properly hidden if not active
+            ghostFormOverlayEl.classList.add('hidden');
+            clearInterval(ghostFormInterval);
+            // If not in ghost form, ensure enemy interval is running (e.g., after loading a save where enemy was active)
+            if (!isResting && !isGameOver) {
+              const currentEnemyAttackInterval = BASE_ENEMY_ATTACK_INTERVAL_MS / gameSpeedMultiplier;
+              enemyGameInterval = setInterval(enemyAttack, currentEnemyAttackInterval);
+            }
+        }
     }
-  });
-  equippedListEl.addEventListener('click', event => {
-    const listItem = event.target.closest('.equipped-list-item');
-    if (listItem && listItem.dataset.itemId) {
-      // Ensure it's an equipped item, not an empty slot message
-      const itemId = listItem.dataset.itemId; // Get the unique ID
-      equipItem(itemId);
-    }
-  });
-  // Start the continuous game loop for progress bars and timers
-  requestAnimationFrame(gameLoop);
-  // Settings Overlay Logic
-  settingsButton.addEventListener('click', () => {
-    settingsOverlay.classList.remove('hidden');
-  });
-  closeSettingsButton.addEventListener('click', () => {
-    settingsOverlay.classList.add('hidden');
-  });
-  // Close overlay if user clicks outside the settings panel
-  settingsOverlay.addEventListener('click', event => {
-    if (event.target === settingsOverlay) {
-      settingsOverlay.classList.add('hidden');
-    }
-  });
-  // Event listener for the new "Reset Game" button in settings
-  if (resetGameFromSettingsBtn) {
-    resetGameFromSettingsBtn.addEventListener('click', () => {
-      showConfirmationModal(
-        'Reset Game?',
-        'Are you sure you want to reset all game progress? This cannot be undone.',
-        resetGame
-      );
-    });
-  }
-  if (saveGameBtn) {
-      saveGameBtn.addEventListener('click', saveGame);
-  }
-  // Changed from loadFileInput to loadGameBtn
-  if (loadGameBtn) {
-      loadGameBtn.addEventListener('click', () => {
-          loadFileInput.click(); // Programmatically click the hidden file input
-      });
-  }
-  if (loadFileInput) {
-      loadFileInput.addEventListener('change', loadGame);
-  }
-  // Example: Handling setting changes (e.g., volume control)
-  if (volumeControl) {
-    volumeControl.addEventListener('input', event => {
-      console.log('Volume changed to:', event.target.value);
-      // Implement actual volume control here (e.g., for background music, sound effects)
-    });
-  }
-  // Example: Handling setting changes (e.g., dark mode toggle)
-  if (darkModeToggle) {
-    darkModeToggle.addEventListener('change', event => {
-      console.log('Dark Mode enabled:', event.target.checked);
-      // Implement actual dark mode toggle here (e.g., change body classes or CSS variables)
-      if (event.target.checked) {
-        document.body.classList.add('dark-mode-active'); // Add a class to body
-        // You'd need to define .dark-mode-active styles in your CSS
-        // For example:
-        // body.dark-mode-active { background-color: #000; color: #fff; }
-      } else {
-        document.body.classList.remove('dark-mode-active'); // Remove the class
-      }
-    });
-  }
-  // Event listener for Auto-Rest checkbox
-  if (autoRestCheckbox) {
-    autoRestCheckbox.addEventListener('change', event => {
-      autoRestEnabled = event.target.checked;
-      if (autoRestEnabled) {
-        logMessage('Auto-Rest enabled. You will rest when below 35% HP.');
-      } else {
-        logMessage('Auto-Rest disabled.');
-        // If auto-rest is disabled while resting, stop resting immediately
-        if (isResting) {
-          isResting = false; // Stop resting
-          playerHpTextOverlayEl.classList.remove('resting-text');
-          updateUI();
-          // Restart combat intervals if they were stopped due to resting
-          applyGameSpeed(); // Use applyGameSpeed to restart intervals
+    
+    // Set up autosave interval (every 60 seconds)
+    setInterval(autoSaveGame, 60000);
+    
+    // These updates are needed regardless of new game or loaded game
+    updateUI();
+    updateGoldUI();
+    updatePlayerStats();
+    updateInventoryUI();
+    updateEquippedItemsUI();
+    updateZoneButtons();
+    // Ensure help overlay is hidden and body class is removed on load
+    helpOverlay.classList.remove('active');
+    document.body.classList.remove('help-active');
+
+    restartGameBtn.onclick = resetGame; // Set restart button action to directly call resetGame
+    // Event delegation for inventory and equipped items
+    inventoryListEl.addEventListener('click', event => {
+      const listItem = event.target.closest('.inventory-list-item');
+      if (listItem) {
+        const itemId = listItem.dataset.itemId; // Get the unique ID
+        if (event.ctrlKey) {
+          sellIndividualItem(itemId); // Sell item if CTRL is held
+        } else {
+          equipItem(itemId); // Otherwise, equip/unequip
         }
       }
     });
-  }
-  // Event listener for the new "Force Rest" button
-  if (forceRestBtn) {
-    forceRestBtn.addEventListener('click', () => {
-      startResting(); // Call the startResting function
+    equippedListEl.addEventListener('click', event => {
+      const listItem = event.target.closest('.equipped-list-item');
+      if (listItem && listItem.dataset.itemId) {
+        // Ensure it's an equipped item, not an empty slot message
+        const itemId = listItem.dataset.itemId; // Get the unique ID
+        equipItem(itemId);
+      }
     });
-  }
-  // Event listener for the new "Sell All" button
-  if (sellAllBtn) {
-    sellAllBtn.addEventListener('click', sellAllItems);
-  }
-  // Event listener for the new "Sort by Level" button
-  if (sortInventoryBtn) {
-    sortInventoryBtn.addEventListener('click', () => {
-      // For now, only one sort option (levelDesc). If more are added,
-      // this would toggle between them or open a sort menu.
-      // For simplicity, just re-render with the current sort order.
-      updateInventoryUI();
-      logMessage('Inventory sorted by level (descending).');
+    // Start the continuous game loop for progress bars and timers
+    requestAnimationFrame(gameLoop);
+    // Settings Overlay Logic
+    settingsButton.addEventListener('click', () => {
+      settingsOverlay.classList.remove('hidden');
     });
-  }
-  // Event listeners for confirmation modal buttons
-  confirmButton.addEventListener('click', () => {
-    if (currentConfirmationCallback) {
-      currentConfirmationCallback(); // Execute the stored callback
+    closeSettingsButton.addEventListener('click', () => {
+      settingsOverlay.classList.add('hidden');
+    });
+    // Close overlay if user clicks outside the settings panel
+    settingsOverlay.addEventListener('click', event => {
+      if (event.target === settingsOverlay) {
+        settingsOverlay.classList.add('hidden');
+      }
+    });
+    // Event listener for the new "Reset Game" button in settings
+    if (resetGameFromSettingsBtn) {
+      resetGameFromSettingsBtn.addEventListener('click', () => {
+        showConfirmationModal(
+          'Reset Game?',
+          'Are you sure you want to reset all game progress? This cannot be undone.',
+          resetGame
+        );
+      });
     }
-  });
-  cancelButton.addEventListener('click', hideConfirmationModal);
-  // Removed event listeners for level boost radio buttons
-  // levelBoostRadios.forEach(radio => {
-  //     radio.addEventListener('change', (event) => {
-  //         levelRangeBoost = parseInt(event.target.value, 10);
-  //         logMessage(`Enemy level range boost set to +${levelRangeBoost}.`);
-  //         nextEnemy(); // Immediately spawn a new enemy with the updated level range
-  //     });
-  // });
-  // Help Overlay Logic
-  helpButton.addEventListener('click', () => {
-    helpOverlay.classList.add('active'); // Show help overlay
-    document.body.classList.add('help-active'); // Add class to body to shift game area
-  });
-  helpCloseButton.addEventListener('click', () => {
-    helpOverlay.classList.remove('active'); // Hide help overlay
-    document.body.classList.remove('help-active'); // Remove class from body to shift game area back
-  });
-  prevZoneBtn.addEventListener('click', goToPreviousZone);
-  nextZoneBtn.addEventListener('click', goToNextZone);
-  // Event listeners for game speed radios
-  gameSpeedRadios.forEach(radio => {
-    radio.addEventListener('change', event => {
-      gameSpeedMultiplier = parseInt(event.target.value, 10);
-      applyGameSpeed(); // Apply the new speed
+    if (saveGameBtn) {
+        saveGameBtn.addEventListener('click', saveGame);
+    }
+    // Changed from loadFileInput to loadGameBtn
+    if (loadGameBtn) {
+        loadGameBtn.addEventListener('click', () => {
+            loadFileInput.click(); // Programmatically click the hidden file input
+        });
+    }
+    if (loadFileInput) {
+        loadFileInput.addEventListener('change', loadGame);
+    }
+    // Example: Handling setting changes (e.g., volume control)
+    if (volumeControl) {
+      volumeControl.addEventListener('input', event => {
+        console.log('Volume changed to:', event.target.value);
+        // Implement actual volume control here (e.g., for background music, sound effects)
+      });
+    }
+    // Example: Handling setting changes (e.g., dark mode toggle)
+    if (darkModeToggle) {
+      darkModeToggle.addEventListener('change', event => {
+        console.log('Dark Mode enabled:', event.target.checked);
+        // Implement actual dark mode toggle here (e.g., change body classes or CSS variables)
+        if (event.target.checked) {
+          document.body.classList.add('dark-mode-active'); // Add a class to body
+          // You'd need to define .dark-mode-active styles in your CSS
+          // For example:
+          // body.dark-mode-active { background-color: #000; color: #fff; }
+        } else {
+          document.body.classList.remove('dark-mode-active'); // Remove the class
+        }
+      });
+    }
+    // Event listener for Auto-Rest checkbox
+    if (autoRestCheckbox) {
+      autoRestCheckbox.addEventListener('change', event => {
+        autoRestEnabled = event.target.checked;
+        if (autoRestEnabled) {
+          logMessage('Auto-Rest enabled. You will rest when below 35% HP.');
+        } else {
+          logMessage('Auto-Rest disabled.');
+          // If auto-rest is disabled while resting, stop resting immediately
+          if (isResting) {
+            isResting = false; // Stop resting
+            playerHpTextOverlayEl.classList.remove('resting-text');
+            updateUI();
+            // Restart combat intervals if they were stopped due to resting
+            applyGameSpeed(); // Use applyGameSpeed to restart intervals
+          }
+        }
+      });
+    }
+    // Event listener for the new "Force Rest" button
+    if (forceRestBtn) {
+      forceRestBtn.addEventListener('click', () => {
+        startResting(); // Call the startResting function
+      });
+    }
+    // Event listener for the new "Sell All" button
+    if (sellAllBtn) {
+      sellAllBtn.addEventListener('click', sellAllItems);
+    }
+    // Event listener for the new "Sort by Level" button
+    if (sortInventoryBtn) {
+      sortInventoryBtn.addEventListener('click', () => {
+        // For now, only one sort option (levelDesc). If more are added,
+        // this would toggle between them or open a sort menu.
+        // For simplicity, just re-render with the current sort order.
+        updateInventoryUI();
+        logMessage('Inventory sorted by level (descending).');
+      });
+    }
+    // Event listeners for confirmation modal buttons
+    confirmButton.addEventListener('click', () => {
+      if (currentConfirmationCallback) {
+        currentConfirmationCallback(); // Execute the stored callback
+      }
     });
-  }
-  );
+    cancelButton.addEventListener('click', hideConfirmationModal);
+    // Removed event listeners for level boost radio buttons
+    // levelBoostRadios.forEach(radio => {
+    //     radio.addEventListener('change', (event) => {
+    //         levelRangeBoost = parseInt(event.target.value, 10);
+    //         logMessage(`Enemy level range boost set to +${levelRangeBoost}.`);
+    //         nextEnemy(); // Immediately spawn a new enemy with the updated level range
+    //     });
+    // });
+    // Help Overlay Logic
+    helpButton.addEventListener('click', () => {
+      helpOverlay.classList.add('active'); // Show help overlay
+      document.body.classList.add('help-active'); // Add class to body to shift game area
+    });
+    helpCloseButton.addEventListener('click', () => {
+      helpOverlay.classList.remove('active'); // Hide help overlay
+      document.body.classList.remove('help-active'); // Remove class from body to shift game area back
+    });
+    prevZoneBtn.addEventListener('click', goToPreviousZone);
+    nextZoneBtn.addEventListener('click', goToNextZone);
+    // Event listeners for game speed radios
+    gameSpeedRadios.forEach(radio => {
+      radio.addEventListener('change', event => {
+        gameSpeedMultiplier = parseInt(event.target.value, 10);
+        applyGameSpeed(); // Apply the new speed
+      });
+    }
+    );
 
-  playerNameInputEl.addEventListener('focus', () => {
-      isPlayerNameInputFocused = true;
-  });
-  playerNameInputEl.addEventListener('blur', (event) => {
-      isPlayerNameInputFocused = false;
-      player.name = event.target.value.trim(); // Update player name in game state
-      if (player.name === '') {
-          player.name = 'Adventurer'; // Default name if empty
-          playerNameInputEl.value = 'Adventurer';
-      }
-      logMessage(`Your name has been changed to ${player.name}.`);
-      updateUI(); // Update UI to reflect name change in other places (e.g., log messages)
-  });
-  // Also update on 'change' for cases where user presses Enter
-  playerNameInputEl.addEventListener('change', (event) => {
-      // The blur event will also trigger change, so this might be redundant but harmless.
-      // Keeping it for robustness in case blur doesn't always fire change in all environments.
-      player.name = event.target.value.trim(); // Update player name in game state
-      if (player.name === '') {
-          player.name = 'Adventurer'; // Default name if empty
-          playerNameInputEl.value = 'Adventurer';
-      }
-      logMessage(`Your name has been changed to ${player.name}.`);
-      updateUI(); // Update UI to reflect name change in other places (e.g., log messages)
-  });
+    playerNameInputEl.addEventListener('focus', () => {
+        isPlayerNameInputFocused = true;
+    });
+    playerNameInputEl.addEventListener('blur', (event) => {
+        isPlayerNameInputFocused = false;
+        player.name = event.target.value.trim(); // Update player name in game state
+        if (player.name === '') {
+            player.name = 'Adventurer'; // Default name if empty
+            playerNameInputEl.value = 'Adventurer';
+        }
+        logMessage(`Your name has been changed to ${player.name}.`);
+        updateUI(); // Update UI to reflect name change in other places (e.g., log messages)
+    });
+    // Also update on 'change' for cases where user presses Enter
+    playerNameInputEl.addEventListener('change', (event) => {
+        // The blur event will also trigger change, so this might be redundant but harmless.
+        // Keeping it for robustness in case blur doesn't always fire change in all environments.
+        player.name = event.target.value.trim(); // Update player name in game state
+        if (player.name === '') {
+            player.name = 'Adventurer'; // Default name if empty
+            playerNameInputEl.value = 'Adventurer';
+        }
+        logMessage(`Your name has been changed to ${player.name}.`);
+        updateUI(); // Update UI to reflect name change in other places (e.g., log messages)
+    });
+  } catch (e) {
+    console.error("Error during window.onload initialization:", e);
+    const errorDisplay = document.getElementById('errorMessageDisplay');
+    if (errorDisplay) {
+        errorDisplay.textContent = `Initialization Error: ${e.message}`;
+        errorDisplay.classList.remove('hidden');
+    }
+  }
 };
 // Map item types to the player's equipped properties (slots)
 const itemSlotMap = {
