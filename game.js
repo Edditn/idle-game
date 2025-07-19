@@ -1,15 +1,3 @@
-// game.js
-// This file now contains all your JavaScript logic.
-// For larger projects, you would further split this file into modules.
-
-// --- Suggested Modularization Points (for future splitting) ---
-
-// 1. Data Definitions (e.g., in 'data.js')
-//    You would 'export' these constants and variables from 'data.js'
-//    and 'import' them into 'game.js' (and other relevant modules).
-//    Example: export let player = {...}; export const levelZones = [...];
-//    Then in this file: import { player, enemy, levelZones, rarities, statAffixes, items, lootTable } from './data.js';
-
 // Game state variables
 let player = {
   name: 'Edd',
