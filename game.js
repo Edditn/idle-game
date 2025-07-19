@@ -123,7 +123,7 @@ const ENEMY_HP_SCALING_FACTOR = 1.0750; // Increased exponential scaling for ene
 const ENEMY_ATTACK_BASE = 9.48; // Base Attack for enemy
 const ENEMY_ATTACK_SCALING_FACTOR = 1.0550; // Scaling for enemy attack
 const ENEMY_XP_BASE = 20; // Base XP for a level 1 monster
-const ENEMY_XP_REWARD_EXPONENT = 1.3; // Exponent for how monster XP scales with level
+const ENEMY_XP_REWARD_EXPONENT = 1.1; // Exponent for how monster XP scales with level
 
 // Define stat affixes and their weights (total weight 15 per affix for weapons, 15 for armor)
 const statAffixes = {
@@ -206,13 +206,13 @@ const items = {
 // Removed Leather items, Dagger, and Copper Sword. Significantly increased drop chances.
 const lootTable = [
   { item: items['Coin'], minQuantity: 3, maxQuantity: 8, dropChance: 5 }, // Kept the same
-  { item: items['Iron Sword'], minQuantity: 1, maxQuantity: 1, dropChance: 1 }, //1.5 still too much
-  { item: items['Iron Dagger'], minQuantity: 1, maxQuantity: 1, dropChance: 1 }, //1.5 still too much
-  { item: items['Iron Helmet'], minQuantity: 1, maxQuantity: 1, dropChance: 1 }, //1.5 still too much
-  { item: items['Iron Pauldrons'], minQuantity: 1, maxQuantity: 1, dropChance: 1 }, //1.5 still too much
-  { item: items['Iron Chestplate'], minQuantity: 1, maxQuantity: 1, dropChance: 1}, //1.5 still too much
-  { item: items['Iron Greaves'], minQuantity: 1, maxQuantity: 1, dropChance: 1 }, //1.5 still too much
-  { item: items['Iron Boots'], minQuantity: 1, maxQuantity: 1, dropChance: 1 } //1.5 still too much
+  { item: items['Iron Sword'], minQuantity: 1, maxQuantity: 1, dropChance: 1.2 }, //1.5 still too much
+  { item: items['Iron Dagger'], minQuantity: 1, maxQuantity: 1, dropChance: 1.2 }, //1.5 still too much
+  { item: items['Iron Helmet'], minQuantity: 1, maxQuantity: 1, dropChance: 1.2 }, //1.5 still too much
+  { item: items['Iron Pauldrons'], minQuantity: 1, maxQuantity: 1, dropChance: 1.2 }, //1.5 still too much
+  { item: items['Iron Chestplate'], minQuantity: 1, maxQuantity: 1, dropChance: 1.2}, //1.5 still too much
+  { item: items['Iron Greaves'], minQuantity: 1, maxQuantity: 1, dropChance: 1.2 }, //1.5 still too much
+  { item: items['Iron Boots'], minQuantity: 1, maxQuantity: 1, dropChance: 1.2 } //1.5 still too much
 ];
 let inventory = []; // Changed to an ARRAY to store item INSTANCES
 let talentPoints = 0;
@@ -566,9 +566,11 @@ function showTooltip(event, itemInstance, isInventoryItem = false) {
   if (itemInstance.affix && itemInstance.affix.name) {
       itemNameDisplay += ` ${itemInstance.affix.name}`; // Add affix name to display
   }
-  tooltipContent += `<strong>${itemNameDisplay} (Lvl ${itemInstance.itemLevel})</strong>`;
+  // Apply rarity color directly to the item name
+  const rarityColor = rarities[itemInstance.rarity]?.color || '#e2e8f0'; // Default to white if rarity not found
+  tooltipContent += `<strong style="color: ${rarityColor};">${itemNameDisplay} (Lvl ${itemInstance.itemLevel})</strong>`;
   if (itemInstance.rarity) {
-    tooltipContent += `<br><span style="color: ${rarities[itemInstance.rarity].color};">${itemInstance.rarity}</span>`;
+    tooltipContent += `<br><span style="color: ${rarityColor};">${itemInstance.rarity}</span>`;
   }
 
   const effectiveStatLevel = itemInstance.itemLevel + (rarities[itemInstance.rarity]?.levelBoost || 0);
@@ -610,12 +612,12 @@ function showTooltip(event, itemInstance, isInventoryItem = false) {
 
           let equippedItemNameDisplay = equippedItemForComparison.name;
           if (equippedItemForComparison.affix && equippedItemForComparison.affix.name) {
-              // FIX: Corrected reference from equippedItemNameDisplay.affix.name to equippedItemForComparison.affix.name
               equippedItemNameDisplay += ` ${equippedItemForComparison.affix.name}`;
           }
-          tooltipContent += `<br>${equippedItemNameDisplay} (Lvl ${equippedItemForComparison.itemLevel})`;
+          const equippedRarityColor = rarities[equippedItemForComparison.rarity]?.color || '#e2e8f0';
+          tooltipContent += `<br><span style="color: ${equippedRarityColor};">${equippedItemNameDisplay} (Lvl ${equippedItemForComparison.itemLevel})</span>`;
           if (equippedItemForComparison.rarity) {
-              tooltipContent += `<br><span style="color: ${rarities[equippedItemForComparison.rarity].color};">${rarities[equippedItemForComparison.rarity].rarity}</span>`;
+              tooltipContent += `<br><span style="color: ${equippedRarityColor};">${equippedItemForComparison.rarity}</span>`; // Corrected: use equippedItemForComparison.rarity directly
           }
 
           const equippedEffectiveStatLevel = equippedItemForComparison.itemLevel + (rarities[equippedItemForComparison.rarity]?.levelBoost || 0);
