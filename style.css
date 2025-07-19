@@ -675,7 +675,6 @@ body.help-active #main-game-area {
   transform: translateY(-1px);
 }
 
-/* New: Style for capped stats */
 .stat-capped {
   color: #48bb78; /* Green color for capped stats */
   font-weight: bold;

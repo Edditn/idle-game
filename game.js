@@ -51,7 +51,7 @@ const levelZones = [
   { name: 'Voidwell', minLevel: 70, maxLevel: 80, enemyNames: ['Unshaper', 'Flicker', 'Watcher'] },
   { name: 'Crimvale', minLevel: 80, maxLevel: 90, enemyNames: ['Gorehide', 'Thornsoul', 'Warden'] },
   { name: 'Aurelia', minLevel: 90, maxLevel: 100, enemyNames: ['Gildborn ', 'Exultant', 'Mirrorkin'] },
-  { name: 'Shardspire', minLevel: 100, maxLevel: Infinity, enemyNames: ['Fracture', 'Chrono', 'Eversplit'] } // For 100+
+  //{ name: 'Shardspire', minLevel: 100, maxLevel: Infinity, enemyNames: ['Fracture', 'Chrono', 'Eversplit'] } // For 100+
 ];
 let currentZone = levelZones[0]; // Initial zone is Ashfen
 // Base game intervals (these will be divided by gameSpeedMultiplier)
@@ -593,11 +593,12 @@ function showTooltip(event, itemInstance, isInventoryItem = false) {
 
           let equippedItemNameDisplay = equippedItemForComparison.name;
           if (equippedItemForComparison.affix && equippedItemForComparison.affix.name) {
-              equippedItemNameDisplay += ` ${equippedItemNameDisplay.affix.name}`;
+              // FIX: Corrected reference from equippedItemNameDisplay.affix.name to equippedItemForComparison.affix.name
+              equippedItemNameDisplay += ` ${equippedItemForComparison.affix.name}`;
           }
           tooltipContent += `<br>${equippedItemNameDisplay} (Lvl ${equippedItemForComparison.itemLevel})`;
           if (equippedItemForComparison.rarity) {
-              tooltipContent += `<br><span style="color: ${rarities[equippedItemForComparison.rarity].color};">${equippedItemForComparison.rarity}</span>`; // Changed to equippedItemForComparison.rarity
+              tooltipContent += `<br><span style="color: ${rarities[equippedItemForComparison.rarity].color};">${equippedItemForComparison.rarity}</span>`;
           }
 
           const equippedEffectiveStatLevel = equippedItemForComparison.itemLevel + (rarities[equippedItemForComparison.rarity]?.levelBoost || 0);
@@ -631,8 +632,8 @@ function showTooltip(event, itemInstance, isInventoryItem = false) {
               // Armor pieces now scale exponentially in tooltip comparison
               const equippedExponentialFactor = Math.pow(ITEM_SCALING_FACTOR_ARMOR, equippedEffectiveStatLevel);
               equippedItemStats.defense = (equippedAffixWeights.defense || 0) * equippedBaseValue * equippedExponentialFactor;
-              equippedItemStats.maxHp = (equippedAffixWeights.maxHp || 0) * equippedBaseValue * equippedExponentialFactor; // Corrected exponential factor usage
-              equippedItemStats.healthRegen = (equippedAffixWeights.healthRegen || 0) * equippedBaseValue * equippedExponentialFactor; // Corrected exponential factor usage
+              equippedItemStats.maxHp = (equippedAffixWeights.maxHp || 0) * equippedBaseValue * equippedExponentialFactor;
+              equippedItemStats.healthRegen = (equippedAffixWeights.healthRegen || 0) * equippedBaseValue * equippedExponentialFactor;
 
               if (equippedAffixWeights.defense) {
                   const diff = currentItemStats.defense - equippedItemStats.defense;
@@ -1477,6 +1478,7 @@ function spawnNewEnemy() {
  * @returns {number} The damage value with variance applied.
  */
 function applyDamageVariance(baseDamage, variancePercentage, minVarMultiplier = 1) {
+  // FIX: Corrected variable name from minMultiplier to minVarMultiplier
   const minMultiplier = minVarMultiplier;
   const maxMultiplier = 1 + variancePercentage;
   const randomMultiplier = Math.random() * (maxMultiplier - minMultiplier) + minMultiplier;
