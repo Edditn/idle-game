@@ -265,24 +265,23 @@
     <!-- Help Overlay -->
     <div id="helpOverlay">
       <button class="close-button">×</button>
-      <h2 class="text-2xl font-bold mb-4 text-white">How to Play</h2>
+      <h2 class="text-2xl font-bold mb-4 text-white">Help m</h2>
       <div class="text-gray-300 text-lg leading-relaxed">
         <p class="mb-2">Welcome to Edd's Test Project, an idle game where your character battles enemies automatically!</p>
         <br />
         <p class="mb-2">
-          <strong>Controls</strong>
-          Hold SHIFT and LEFT-CLICK to sell individual items from your inventory.
-        </p>
-        <br />
-        <p class="mb-2">
           <strong>Your Character:</strong>
-          Displays your current level, health, damage, armor(and %reduction), and critical chance. Your stats increase as you level up.
+          Displays your current level, health, health regen(and % max hp/sec), damage, armor(and %reduction), critical chance and haste. Your stats increase as you level up.
         </p>
         <br />
         <p class="mb-2">
           <strong>Current Enemy:</strong>
-          Shows the enemy you are currently fighting, their level, and health. Enemies scale with your level, providing a continuous
-          challenge.
+          Shows the enemy you are currently fighting, their level, and health. Enemies scale with your level.
+        </p>
+        <br />
+        <p class="mb-2">
+          <strong>Controls</strong>
+          Hold SHIFT and LEFT-CLICK to sell individual items from your inventory.
         </p>
         <br />
         <p class="mb-2">
@@ -296,7 +295,7 @@
         <br />
         <p class="mb-2">
           <strong>Selling</strong>
-          SELL ALL button really sells everything, even items acquired AFTER clicking the SELL ALL BUTTON!
+          SELL ALL button will actually sell everything, even items acquired AFTER clicking the SELL ALL BUTTON!
         </p>
         <br />
         <p class="mb-2">
@@ -307,8 +306,8 @@
         <br />
         <p class="mb-2">
           <strong>Equipped Items:</strong>
-          Drag items from your inventory to equip them. Equipping items will boost your character's stats. Click an equipped item to unequip
-          it.
+          Left click items from your inventory to equip them. Equipping items will boost your character's stats. Click an equipped item to unequip
+          it. You can hover over a potential upgrade to compare the item with what you have equipped.
         </p>
         <br />
         <p class="mb-2">
@@ -319,7 +318,7 @@
         <p class="mb-2">
           <strong>Auto-Rest:</strong>
           Check this box to automatically rest when your HP drops below 35% and no enemy is present. Resting will increase your current
-          health regen stat x15!
+          health regen stat x10!
         </p>
         <br />
         <p class="mb-2">
@@ -328,8 +327,17 @@
         </p>
         <br />
         <p class="mb-2">
+          <strong>You died?</strong>
+          If you die, you will enter ghost form. You are unable to take actions for 45 seconds. This death timer does not scale with game speed, so dont die!
+        </p>
+        <br />
+        <p class="mb-2">
           <strong>Settings:</strong>
-          The gear icon in the top right opens game settings, including a reset game option.
+          The gear icon in the top right opens game settings, for now you can manually save a .json file on your computer. If you later start the game again you are required to upload that file to continue your progress, otherwise you will have to start again.
+        </p>
+        <br /><p class="mb-2">
+          <strong>Game Speed:</strong>
+          At the top left, there are game speed modifiers, these will make the game run faster. Attack speed, health regen, and spawnrate are all increased. Ghost form is not!
         </p>
         <br />
         <p class="mb-2">Good luck, adventurer!</p>
