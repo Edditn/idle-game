@@ -169,13 +169,13 @@ const items = {
 // Removed Leather items, Dagger, and Copper Sword. Significantly increased drop chances.
 const lootTable = [
   { item: items['Coin'], minQuantity: 3, maxQuantity: 8, dropChance: 5 }, // Kept the same
-  { item: items['Iron Sword'], minQuantity: 1, maxQuantity: 1, dropChance: 1.5 }, // Tripled
-  { item: items['Iron Dagger'], minQuantity: 1, maxQuantity: 1, dropChance: 1.5 }, // Tripled
-  { item: items['Iron Helmet'], minQuantity: 1, maxQuantity: 1, dropChance: 1.5 }, // More than doubled
-  { item: items['Iron Pauldrons'], minQuantity: 1, maxQuantity: 1, dropChance: 1.5 }, // More than doubled
-  { item: items['Iron Chestplate'], minQuantity: 1, maxQuantity: 1, dropChance: 1.5 }, // More than doubled
-  { item: items['Iron Greaves'], minQuantity: 1, maxQuantity: 1, dropChance: 1.5 }, // More than doubled
-  { item: items['Iron Boots'], minQuantity: 1, maxQuantity: 1, dropChance: 1.5 } // More than doubled
+  { item: items['Iron Sword'], minQuantity: 1, maxQuantity: 1, dropChance: 1 }, //1.5 still too much
+  { item: items['Iron Dagger'], minQuantity: 1, maxQuantity: 1, dropChance: 1 }, //1.5 still too much
+  { item: items['Iron Helmet'], minQuantity: 1, maxQuantity: 1, dropChance: 1 }, //1.5 still too much
+  { item: items['Iron Pauldrons'], minQuantity: 1, maxQuantity: 1, dropChance: 1 }, //1.5 still too much
+  { item: items['Iron Chestplate'], minQuantity: 1, maxQuantity: 1, dropChance: 1}, //1.5 still too much
+  { item: items['Iron Greaves'], minQuantity: 1, maxQuantity: 1, dropChance: 1 }, //1.5 still too much
+  { item: items['Iron Boots'], minQuantity: 1, maxQuantity: 1, dropChance: 1 } //1.5 still too much
 ];
 let inventory = []; // Changed to an ARRAY to store item INSTANCES
 // NEW: Talent Points
