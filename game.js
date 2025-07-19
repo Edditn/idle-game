@@ -1,15 +1,18 @@
+// NEW GLOBAL CONSTANT FOR ARMOR K VALUE
+const ARMOR_K_VALUE = 1500; // Adjusted K value to make early-game armor more impactful
+
 // Game state variables
 let player = {
   name: 'Edd',
   level: 1,
-  baseAttack: 10, // Base attack without equipment - now dynamically scaled
-  attack: 10, // Current attack including equipment
+  baseAttack: 0, // Will be calculated below
+  attack: 0, // Current attack including equipment
   baseDefense: 0, // Base defense without equipment
   defense: 0, // Current defense including equipment
   baseMaxHp: 200, // Base maximum health - CHANGED from 100 to 150
   maxHp: 200, // Current max HP including equipment - CHANGED from 100 to 150
   baseHealthRegen: 1.0, // Base health regeneration per second - CHANGED from 0.5 to 1.0
-  healthRegen: 1.0, // Current health regen - CHANGED from 0.5 to 1.0
+  healthRegen: 1.0, // Current health regen including equipment and talents
   baseCriticalChance: 0, // Changed from 5 to 0. Critical chance will now primarily come from items/talents.
   criticalChance: 0, // Current critical chance
   baseHaste: 0,     // NEW: Base Haste
@@ -24,7 +27,8 @@ let player = {
   equippedShoulders: null,
   equippedChest: null,
   equippedLegs: null,
-  equippedFeet: null // New: Feet slot
+  equippedFeet: null, // New: Feet slot
+  isHealthRegenCappedByStats: false // New: Flag to indicate if health regen from stats is capped
 };
 let enemy = {
   name: 'Enemy',
@@ -35,7 +39,7 @@ let enemy = {
   level: 1 // New: Enemy level
 };
 // Define zones and their monster level ranges (no longer directly used for min/max enemy level relative to player)
-// NEW: Level-based zones with specific enemy names
+
 const levelZones = [
   { name: 'Ashfen', minLevel: 1, maxLevel: 10, enemyNames: ['Howler', 'Bogboar', 'Cindling'] },
   { name: 'Eastgale', minLevel: 10, maxLevel: 20, enemyNames: ['Wretch', 'Jackal', 'Cairnkin'] },
@@ -54,8 +58,9 @@ let currentZone = levelZones[0]; // Initial zone is Ashfen
 const BASE_PLAYER_ATTACK_INTERVAL_MS = 2000; // 2 seconds
 const BASE_ENEMY_ATTACK_INTERVAL_MS = 2935; // random and desynced
 const BASE_HEALTH_REGEN_INTERVAL_MS = 1000; // 1 second for health regen
-const HEALTH_REGEN_CAP_PERCENTAGE = 0.05; // 5% of Max HP per second
+const HEALTH_REGEN_CAP_PERCENTAGE = 0.05; // 5% of Max HP per second (for resting)
 const BASE_PLAYER_MISS_CHANCE = 1; // NEW: Base miss chance for player (1%)
+const HEALTH_REGEN_STAT_CAP_PERCENTAGE = 0.025; // 2.5% of Max HP per second for health regen from stats
 let playerGameInterval; // To hold the setInterval ID for player attacks
 let enemyGameInterval; // To hold the setInterval ID for enemy attacks
 let ghostFormInterval; // To hold the setInterval ID for ghost form countdown
@@ -90,57 +95,78 @@ const rarities = {
   Epic: { color: '#9f7aea', levelBoost: 9 }, // Purple (Reduced from 15)
   Legendary: { color: '#f6ad55', levelBoost: 15 }, // Orange (Reduced from 25)
 };
+const PLAYER_INITIAL_BASE_MAX_HP = 200; // Player's initial base max HP
+const PLAYER_BASE_ATTACK_START = 10; // Base attack at level 1 for exponential scaling
+const PLAYER_BASE_ATTACK_SCALING_FACTOR = 1.025; // Exponential scaling for player's base attack (Reduced slightly)
+
+const ITEM_SCALING_FACTOR_ARMOR = 1.0416; // Exponential scaling factor for armor stats (Max HP, Defense, Health Regen)
+const ITEM_SCALING_FACTOR_WEAPON_ATTACK = 1.0750; // Exponential scaling factor for weapon attack (Adjusted for precise balance)
+const ENEMY_HP_BASE = 75; // Base HP for enemy
+const ENEMY_HP_SCALING_FACTOR = 1.0750; // Increased exponential scaling for enemy HP (Changed from 1.050 to 1.0750)
+const ENEMY_ATTACK_BASE = 9.48; // Base Attack for enemy
+const ENEMY_ATTACK_SCALING_FACTOR = 1.0550; // Scaling for enemy attack
+const ENEMY_XP_BASE = 20; // Base XP for a level 1 monster
+const ENEMY_XP_REWARD_EXPONENT = 1.3; // Exponent for how monster XP scales with level
 
 // Define stat affixes and their weights (total weight 15 per affix for weapons, 15 for armor)
 const statAffixes = {
-    // Weapon Affixes (Attack, Critical Chance, Haste) - Total Weight: 15
+    // Weapon Affixes (Attack, Critical Chance, Haste) - Adjusted values
+    // Attack scales exponentially with ITEM_SCALING_FACTOR_WEAPON_ATTACK
+    // Critical Chance and Haste now directly represent % per effective level
     'of the Bear': { // Balanced
-        attack: 5,
-        criticalChance: 5,
-        haste: 5,
+        attack: 81.25, // Stays the same, scales exponentially
+        criticalChance: 0.10, // % per effective level (Increased for better balance)
+        haste: 0.10, // % per effective level (Increased for better balance)
         types: ['weapon', 'dagger']
     },
     'of the Wolf': { // Attack focused
-        attack: 9,
-        criticalChance: 3,
-        haste: 3,
+        attack: 146.25,
+        criticalChance: 0.05, // % per effective level
+        haste: 0.05, // % per effective level
         types: ['weapon', 'dagger']
     },
     'of the Tiger': { // Critical Chance focused
-        attack: 3,
-        criticalChance: 9,
-        haste: 3,
+        attack: 48.75,
+        criticalChance: 0.50, // Higher for specialization (Increased to hit 60-70% range)
+        haste: 0.05,
         types: ['weapon', 'dagger']
     },
     'of the Eagle': { // Haste focused
-        attack: 3,
-        criticalChance: 3,
-        haste: 9,
+        attack: 48.75,
+        criticalChance: 0.05,
+        haste: 0.50, // Higher for specialization (Increased to hit 60-70% range)
         types: ['weapon', 'dagger']
     },
-    // Armor Affixes (Defense, Max HP, Health Regen) - Total Weight: 15
-    'of the Boar': { // Defense focused (changed name to Boar for armor)
-        defense: 9,
-        maxHp: 3,
-        healthRegen: 0.3, // Adjusted from 3 to 0.3
+    'of the Serpent': { // Balanced weapon affix
+        attack: 113.75,
+        criticalChance: 0.15, // Increased for better balance
+        haste: 0.15, // Increased for better balance
+        types: ['weapon', 'dagger']
+    },
+    // Armor Affixes (Defense, Max HP, Health Regen) - NEW VALUES (all scale exponentially with ITEM_SCALING_FACTOR_ARMOR)
+    // No crit/haste on armor, as per original setup.
+    'of the Boar': { // Defense focused
+        defense: 330.39,
+        maxHp: 110.13,
+        healthRegen: 1.01,
         types: ['head', 'shoulders', 'chest', 'legs', 'feet']
     },
-    'of the Mammoth': { // Max HP focused (changed name to Mammoth for armor)
-        defense: 3,
-        maxHp: 9,
-        healthRegen: 0.3, // Adjusted from 3 to 0.3
+    'of the Mammoth': { // Max HP focused
+        defense: 110.13,
+        maxHp: 330.39,
+        healthRegen: 1.01,
         types: ['head', 'shoulders', 'chest', 'legs', 'feet']
     },
-    'of the Phoenix': { // Health Regen focused (changed name to Phoenix for armor)
-        defense: 3,
-        maxHp: 3,
-        healthRegen: 0.9, // Adjusted from 9 to 0.9
+    'of the Phoenix': { // Health Regen focused
+        defense: 110.13,
+        maxHp: 110.13,
+        healthRegen: 3.04,
         types: ['head', 'shoulders', 'chest', 'legs', 'feet']
     },
-    'of the Rhino': { // Balanced (new name for armor)
-        defense: 5,
-        maxHp: 5,
-        healthRegen: 0.5, // Adjusted from 5 to 0.5
+    'of the Rhino': { // Balanced
+        defense: 183.55,
+        maxHp: 183.55,
+        healthRegen: 1.36,
         types: ['head', 'shoulders', 'chest', 'legs', 'feet']
     }
 };
@@ -178,7 +204,6 @@ const lootTable = [
   { item: items['Iron Boots'], minQuantity: 1, maxQuantity: 1, dropChance: 1 } //1.5 still too much
 ];
 let inventory = []; // Changed to an ARRAY to store item INSTANCES
-// NEW: Talent Points
 let talentPoints = 0;
 let unspentTalentPoints = 0;
 
@@ -210,25 +235,20 @@ const inventoryListEl = document.getElementById('inventory-list');
 const goldDisplayEl = document.getElementById('gold-display');
 const itemTooltipEl = document.getElementById('item-tooltip'); // Tooltip element
 const equippedListEl = document.getElementById('equipped-list'); // Equipped items list element
-// New DOM elements for Player Stats window
 const statMaxHealthEl = document.getElementById('stat-max-health');
 const statHealthRegenEl = document.getElementById('stat-health-regen');
 const statDamageEl = document.getElementById('stat-damage');
 const statArmorEl = document.getElementById('stat-armor');
 const statCriticalChanceEl = document.getElementById('stat-critical-chance');
-// NEW: Haste stat element
 const statHasteEl = document.getElementById('stat-haste');
-// New DOM element for the global combat text overlay
 const combatTextOverlayEl = document.getElementById('combat-text-overlay');
 const gameContainerEl = document.querySelector('.game-container'); // Get the main game container
-// New DOM elements for Settings Overlay
 const settingsButton = document.getElementById('settingsButton');
 const settingsOverlay = document.getElementById('settingsOverlay');
 const closeSettingsButton = document.getElementById('closeSettings');
 const volumeControl = document.getElementById('volumeControl');
 const darkModeToggle = document.getElementById('darkModeToggle');
 const resetGameFromSettingsBtn = document.getElementById('resetGameFromSettingsBtn'); // New reset button in settings
-// NEW: Save/Load buttons
 const saveGameBtn = document.getElementById('saveGameBtn');
 const loadGameBtn = document.getElementById('loadGameBtn'); // Renamed from loadFileInput to loadGameBtn
 const loadFileInput = document.getElementById('loadFileInput'); // Hidden file input for loading
@@ -236,32 +256,23 @@ const autoRestCheckbox = document.getElementById('autoRestCheckbox'); // New: Au
 const forceRestBtn = document.getElementById('forceRestBtn'); // New: Force Rest button
 const sellAllBtn = document.getElementById('sellAllBtn'); // New: Sell All button
 const sortInventoryBtn = document.getElementById('sortInventoryBtn'); // New: Sort Inventory button
-// New DOM elements for Help Overlay
 const helpButton = document.getElementById('helpButton');
 const helpOverlay = document.getElementById('helpOverlay');
 const helpCloseButton = helpOverlay.querySelector('.close-button');
-// New: Confirmation Modal Elements
 const confirmationModalOverlay = document.getElementById('confirmationModalOverlay');
 const confirmationModalTitle = document.getElementById('confirmationModalTitle');
 const confirmationModalMessage = document.getElementById('confirmationModalMessage');
 const confirmButton = document.getElementById('confirmButton');
 const cancelButton = document.getElementById('cancelButton');
-// NEW: Main Zone Display and Navigation Buttons
 const mainCurrentZoneDisplayEl = document.getElementById('main-current-zone-display');
 const prevZoneBtn = document.getElementById('prevZoneBtn');
 const nextZoneBtn = document.getElementById('nextZoneBtn');
-// NEW: Enemy Attack Power Display
 const enemyAttackPowerDisplayEl = document.getElementById('enemy-attack-power-display');
-// NEW: Game Speed Radios
 const gameSpeedRadios = document.querySelectorAll('input[name="gameSpeed"]');
-
-// NEW: Player Name Input and Level Display Elements
 const playerNameInputEl = document.getElementById('player-name-input');
 const playerLevelDisplayEl = document.getElementById('player-level-display');
-// NEW: Enemy Name and Level Display Elements
 const enemyNameDisplayEl = document.getElementById('enemy-name-display');
 const enemyLevelDisplayEl = document.getElementById('enemy-level-display');
-// Talent Points Display
 const talentPointsDisplayEl = document.getElementById('talent-points-display');
 const spendTalentPointBtn = document.getElementById('spend-talent-point-btn');
 const attackSpeedTalentBtn = document.getElementById('attackSpeedTalent');
@@ -269,7 +280,6 @@ const criticalStrikeTalentBtn = document.getElementById('criticalStrikeTalentBtn
 const healthRegenTalentBtn = document.getElementById('healthRegenTalentBtn');
 const scalingArmorTalentBtn = document.getElementById('scalingArmorTalentBtn');
 
-// Talent tracking
 let talents = {
   attackSpeed: {
     name: 'Swift Strikes',
@@ -298,40 +308,23 @@ let talents = {
 };
 
 let currentConfirmationCallback = null; // Stores the callback for the active confirmation modal
-let isPlayerNameInputFocused = false; // NEW: Flag to track if player name input is focused
+let isPlayerNameInputFocused = false; // Flag to track if player name input is focused
 
-// 3. Utility Functions (e.g., in 'utils.js')
-//    Functions like logMessage, showCombatText, calculateXpToNextLevel, applyDamageVariance,
-//    and modal functions could go here.
-//    Example: export function logMessage(msg) {...};
-//    Then in this file: import { logMessage } from './utils.js';
 
 /**
  * Recalculates player's total attack and defense based on base stats and equipped items.
  */
 function updatePlayerStats() {
-  // Reset to base stats
-  // player.baseAttack is now calculated in resetGame and levelUp
   player.attack = player.baseAttack;
   player.defense = player.baseDefense;
   player.maxHp = player.baseMaxHp;
-  player.healthRegen = player.baseHealthRegen;
+  player.healthRegen = player.baseHealthRegen; // Start with base health regen
   player.criticalChance = player.baseCriticalChance;
   player.haste = player.baseHaste;
 
-  // Apply talent bonuses
-  // Attack Speed (Haste)
-  player.haste += talents.attackSpeed.currentRank * talents.attackSpeed.bonusPerRank;
-  
-  // Critical Strike
-  player.criticalChance += talents.criticalStrike.currentRank * talents.criticalStrike.bonusPerRank;
-  
-  // Health Regen
-  player.healthRegen += talents.healthRegen.currentRank * talents.healthRegen.bonusPerRank;
-  
-  // Scaling Armor (increases with level)
-  const armorBonus = talents.scalingArmor.currentRank * talents.scalingArmor.bonusPerRank * (1 + player.level * 0.1);
-  player.defense += armorBonus;
+  // Temporary variable to accumulate health regen from equipped items
+  let equippedItemsHealthRegen = 0;
+
   // Apply equipped item bonuses based on their actual itemLevel AND rarityBoost
   const equippedItems = [
     player.equippedWeapon,
@@ -350,16 +343,51 @@ function updatePlayerStats() {
       const affixWeights = item.affix.weights; // Get the weights from the item's affix
 
       if (item.type === 'weapon' || item.type === 'dagger') {
-        player.attack += (affixWeights.attack || 0) * baseValue * effectiveStatLevel;
-        player.criticalChance += (affixWeights.criticalChance || 0) * baseValue * effectiveStatLevel;
-        player.haste += (affixWeights.haste || 0) * baseValue * effectiveStatLevel;
+        // Weapons: Attack scales exponentially, Crit Chance and Haste scale linearly
+        const exponentialFactorAttack = Math.pow(ITEM_SCALING_FACTOR_WEAPON_ATTACK, effectiveStatLevel);
+
+        player.attack += (affixWeights.attack || 0) * baseValue * exponentialFactorAttack;
+        // Crit Chance and Haste now directly represent % per effective level
+        player.criticalChance += (affixWeights.criticalChance || 0) * effectiveStatLevel;
+        player.haste += (affixWeights.haste || 0) * effectiveStatLevel;
       } else if (['head', 'shoulders', 'chest', 'legs', 'feet'].includes(item.type)) {
-        player.maxHp += (affixWeights.maxHp || 0) * baseValue * effectiveStatLevel;
-        player.healthRegen += (affixWeights.healthRegen || 0) * baseValue * effectiveStatLevel;
-        player.defense += (affixWeights.defense || 0) * baseValue * effectiveStatLevel;
+        // Armor pieces now scale exponentially
+        const exponentialFactor = Math.pow(ITEM_SCALING_FACTOR_ARMOR, effectiveStatLevel);
+
+        player.maxHp += (affixWeights.maxHp || 0) * baseValue * exponentialFactor;
+        equippedItemsHealthRegen += (affixWeights.healthRegen || 0) * baseValue * exponentialFactor; // Accumulate here
+        player.defense += (affixWeights.defense || 0) * baseValue * exponentialFactor;
       }
     }
   });
+
+  // Add equipped items health regen to player's healthRegen
+  player.healthRegen += equippedItemsHealthRegen;
+
+  // Calculate the health regen cap based on max HP (2.5% of max HP)
+  const maxRegenCapValue = player.maxHp * HEALTH_REGEN_STAT_CAP_PERCENTAGE;
+
+  // Determine if health regen from base stats and equipped items is capped
+  player.isHealthRegenCappedByStats = (player.healthRegen >= maxRegenCapValue);
+
+  // Apply the cap to the health regen from base stats and equipped items
+  player.healthRegen = Math.min(player.healthRegen, maxRegenCapValue);
+
+  // Add talent health regen AFTER applying the cap to base/item regen
+  player.healthRegen += talents.healthRegen.currentRank * talents.healthRegen.bonusPerRank;
+
+  // Apply talent bonuses for other stats
+  // Attack Speed (Haste)
+  player.haste += talents.attackSpeed.currentRank * talents.attackSpeed.bonusPerRank;
+  
+  // Critical Strike
+  player.criticalChance += talents.criticalStrike.currentRank * talents.criticalStrike.bonusPerRank;
+  
+  // Scaling Armor (increases with level)
+  const armorBonus = talents.scalingArmor.currentRank * talents.scalingArmor.bonusPerRank * (1 + player.level * 0.1);
+  player.defense += armorBonus;
+
+
   // Ensure current HP doesn't exceed new max HP
   if (player.hp > player.maxHp) {
     player.hp = player.maxHp;
@@ -444,7 +472,7 @@ function updateEquippedItemsUI() {
     { slot: 'equippedShoulders', item: player.equippedShoulders, label: 'Shoulders' },
     { slot: 'equippedChest', item: player.equippedChest, label: 'Chest' },
     { slot: 'equippedLegs', item: player.equippedLegs, label: 'Legs' },
-    { slot: 'equippedFeet', item: player.equippedFeet, label: 'Feet' } // New: Feet slot
+    { slot: 'equippedFeet', item: player.equippedFeet, label: 'Feet' } 
   ];
   for (const slotInfo of equippedSlots) {
     const listItem = document.createElement('div');
@@ -538,17 +566,23 @@ function showTooltip(event, itemInstance, isInventoryItem = false) {
 
   const currentItemStats = {};
   if (itemInstance.type === 'weapon' || itemInstance.type === 'dagger') {
-    currentItemStats.attack = (affixWeights.attack || 0) * baseValue * effectiveStatLevel;
-    currentItemStats.criticalChance = (affixWeights.criticalChance || 0) * baseValue * effectiveStatLevel;
-    currentItemStats.haste = (affixWeights.haste || 0) * baseValue * effectiveStatLevel;
+    // Weapons: Attack scales exponentially, Crit Chance and Haste scale linearly in tooltip
+    const exponentialFactorAttack = Math.pow(ITEM_SCALING_FACTOR_WEAPON_ATTACK, effectiveStatLevel);
+
+    currentItemStats.attack = (affixWeights.attack || 0) * baseValue * exponentialFactorAttack;
+    // Crit Chance and Haste now directly represent % per effective level
+    currentItemStats.criticalChance = (affixWeights.criticalChance || 0) * effectiveStatLevel;
+    currentItemStats.haste = (affixWeights.haste || 0) * effectiveStatLevel;
 
     if (affixWeights.attack) tooltipContent += `<br>Attack: +${currentItemStats.attack.toFixed(0)}`;
     if (affixWeights.criticalChance) tooltipContent += `<br>Crit Chance: +${currentItemStats.criticalChance.toFixed(1)}%`;
     if (affixWeights.haste) tooltipContent += `<br>Haste: +${currentItemStats.haste.toFixed(1)}%`;
   } else if (['head', 'shoulders', 'chest', 'legs', 'feet'].includes(itemInstance.type)) {
-    currentItemStats.defense = (affixWeights.defense || 0) * baseValue * effectiveStatLevel;
-    currentItemStats.maxHp = (affixWeights.maxHp || 0) * baseValue * effectiveStatLevel;
-    currentItemStats.healthRegen = (affixWeights.healthRegen || 0) * baseValue * effectiveStatLevel;
+    // Armor pieces now scale exponentially in tooltip
+    const exponentialFactor = Math.pow(ITEM_SCALING_FACTOR_ARMOR, effectiveStatLevel);
+    currentItemStats.defense = (affixWeights.defense || 0) * baseValue * exponentialFactor;
+    currentItemStats.maxHp = (affixWeights.maxHp || 0) * baseValue * exponentialFactor;
+    currentItemStats.healthRegen = (affixWeights.healthRegen || 0) * baseValue * exponentialFactor;
 
     if (affixWeights.defense) tooltipContent += `<br>Defense: +${currentItemStats.defense.toFixed(1)}`;
     if (affixWeights.maxHp) tooltipContent += `<br>Max HP: +${currentItemStats.maxHp.toFixed(1)}`;
@@ -565,11 +599,11 @@ function showTooltip(event, itemInstance, isInventoryItem = false) {
 
           let equippedItemNameDisplay = equippedItemForComparison.name;
           if (equippedItemForComparison.affix && equippedItemForComparison.affix.name) {
-              equippedItemNameDisplay += ` ${equippedItemForComparison.affix.name}`;
+              equippedItemNameDisplay += ` ${equippedItemNameDisplay.affix.name}`;
           }
           tooltipContent += `<br>${equippedItemNameDisplay} (Lvl ${equippedItemForComparison.itemLevel})`;
           if (equippedItemForComparison.rarity) {
-              tooltipContent += `<br><span style="color: ${rarities[equippedItemForComparison.rarity].color};">${equippedItemForComparison.rarity}</span>`;
+              tooltipContent += `<br><span style="color: ${rarities[equippedItemForComparison.rarity].color};">${equippedItemForComparison.rarity}</span>`; // Changed to equippedItemForComparison.rarity
           }
 
           const equippedEffectiveStatLevel = equippedItemForComparison.itemLevel + (rarities[equippedItemForComparison.rarity]?.levelBoost || 0);
@@ -578,9 +612,11 @@ function showTooltip(event, itemInstance, isInventoryItem = false) {
 
           const equippedItemStats = {};
           if (equippedItemForComparison.type === 'weapon' || equippedItemForComparison.type === 'dagger') {
-              equippedItemStats.attack = (equippedAffixWeights.attack || 0) * equippedBaseValue * equippedEffectiveStatLevel;
-              equippedItemStats.criticalChance = (equippedAffixWeights.criticalChance || 0) * equippedBaseValue * equippedEffectiveStatLevel;
-              equippedItemStats.haste = (equippedAffixWeights.haste || 0) * equippedBaseValue * equippedEffectiveStatLevel;
+              // Weapons: Attack scales exponentially, Crit Chance and Haste scale linearly in tooltip comparison
+              const equippedExponentialFactorAttack = Math.pow(ITEM_SCALING_FACTOR_WEAPON_ATTACK, equippedEffectiveStatLevel);
+              equippedItemStats.attack = (equippedAffixWeights.attack || 0) * equippedBaseValue * equippedExponentialFactorAttack;
+              equippedItemStats.criticalChance = (equippedAffixWeights.criticalChance || 0) * equippedEffectiveStatLevel; // Linear scaling
+              equippedItemStats.haste = (equippedAffixWeights.haste || 0) * equippedEffectiveStatLevel; // Linear scaling
 
               if (equippedAffixWeights.attack) {
                   const diff = currentItemStats.attack - equippedItemStats.attack;
@@ -598,9 +634,11 @@ function showTooltip(event, itemInstance, isInventoryItem = false) {
                   tooltipContent += `<br>Haste: +${equippedItemStats.haste.toFixed(1)}% <span class="stat-diff ${diffClass}">(${diff > 0 ? '+' : ''}${diff.toFixed(1)}%)</span>`;
               }
           } else if (['head', 'shoulders', 'chest', 'legs', 'feet'].includes(equippedItemForComparison.type)) {
-              equippedItemStats.defense = (equippedAffixWeights.defense || 0) * equippedBaseValue * equippedEffectiveStatLevel;
-              equippedItemStats.maxHp = (equippedAffixWeights.maxHp || 0) * equippedBaseValue * equippedEffectiveStatLevel;
-              equippedItemStats.healthRegen = (equippedAffixWeights.healthRegen || 0) * equippedBaseValue * equippedEffectiveStatLevel;
+              // Armor pieces now scale exponentially in tooltip comparison
+              const equippedExponentialFactor = Math.pow(ITEM_SCALING_FACTOR_ARMOR, equippedEffectiveStatLevel);
+              equippedItemStats.defense = (equippedAffixWeights.defense || 0) * equippedBaseValue * equippedExponentialFactor;
+              equippedItemStats.maxHp = (equippedAffixWeights.maxHp || 0) * equippedBaseValue * equippedExponentialFactor; // Corrected exponential factor usage
+              equippedItemStats.healthRegen = (equippedAffixWeights.healthRegen || 0) * equippedBaseValue * equippedExponentialFactor; // Corrected exponential factor usage
 
               if (equippedAffixWeights.defense) {
                   const diff = currentItemStats.defense - equippedItemStats.defense;
@@ -613,9 +651,11 @@ function showTooltip(event, itemInstance, isInventoryItem = false) {
                   tooltipContent += `<br>Max HP: +${equippedItemStats.maxHp.toFixed(1)} <span class="stat-diff ${diffClass}">(${diff > 0 ? '+' : ''}${diff.toFixed(1)})</span>`;
               }
               if (equippedAffixWeights.healthRegen) {
-                  const diff = currentItemStats.healthRegen - equippedItemStats.healthRegen;
+                  // Ensure equippedItemStats.healthRegen is a valid number before toFixed
+                  const equippedHealthRegenValue = typeof equippedItemStats.healthRegen === 'number' && !isNaN(equippedItemStats.healthRegen) ? equippedItemStats.healthRegen : 0;
+                  const diff = currentItemStats.healthRegen - equippedHealthRegenValue;
                   const diffClass = diff > 0 ? 'positive' : (diff < 0 ? 'negative' : 'neutral');
-                  tooltipContent += `<br>HP Regen: +${equippedItemStats.healthRegen.toFixed(2)} <span class="stat-diff ${diffClass}">(${diff > 0 ? '+' : ''}${diff.toFixed(2)})</span>`;
+                  tooltipContent += `<br>HP Regen: +${equippedHealthRegenValue.toFixed(2)} <span class="stat-diff ${diffClass}">(${diff > 0 ? '+' : ''}${diff.toFixed(2)})</span>`;
               }
           }
           tooltipContent += `</div>`; // Close comparison-section
@@ -675,7 +715,6 @@ function addItemToInventory(itemData, quantity = 1, droppedByEnemyLevel = 1) {
       // The rarityBoost will be applied to stats, not the item's inherent level.
       const itemActualLevel = Math.min(droppedByEnemyLevel, droppedByEnemyLevel + ENEMY_LEVEL_RANGE);
 
-      // NEW: Select a random affix for the item type
       const availableAffixes = Object.keys(statAffixes).filter(affixName =>
           statAffixes[affixName].types.includes(itemData.type)
       );
@@ -697,7 +736,7 @@ function addItemToInventory(itemData, quantity = 1, droppedByEnemyLevel = 1) {
         sellPrice: itemActualLevel * 1 // Basic sell price: 1 gold per item level
       };
       inventory.push(newItemInstance); // Add to inventory array
-      logMessage(`You found a Lvl ${newItemInstance.itemLevel} ${rolledRarity} ${itemData.name} ${newItemInstance.affix.name}!`); // Log for each individual item
+      logMessage(`You found a Lvl ${newItemInstance.itemLevel} ${rolledRarity} ${newItemInstance.name} ${newItemInstance.affix.name}!`); // Log for each individual item
     }
     updateInventoryUI(); // Update UI after adding item
   }
@@ -719,7 +758,7 @@ function showCombatText(value, isCritical, targetHpBarEl, isDamageTaken = false,
   if (isDamageTaken) {
     combatTextEl.classList.add('damage-taken');
     combatTextEl.textContent = `-${value.toFixed(0)}`; // Damage taken
-  } else if (isMiss) { // NEW: Handle miss
+  } else if (isMiss) { // If it's a miss, we show "Miss!" text
     combatTextEl.classList.add('miss');
     combatTextEl.textContent = value; // Value will be "Miss!" string
   } else {
@@ -802,25 +841,41 @@ function updateUI() {
   const regenPercentageOfMaxHp = (player.healthRegen / player.maxHp) * 100;
   statHealthRegenEl.textContent = `${currentRegenPerSecond.toFixed(2)} (${regenPercentageOfMaxHp.toFixed(1)}%)`;
 
-  statDamageEl.textContent = player.attack.toFixed(1);
-  // Calculate damage reduction percentage for armor display
-  const K = 100; // Same K value as used in enemyAttack
-  let damageReductionPercentage = 0;
-  if (player.defense + K > 0) {
-    // Avoid division by zero
-    damageReductionPercentage = (player.defense / (player.defense + K)) * 100;
+  // Apply green color if health regen from stats was capped
+  if (player.isHealthRegenCappedByStats) {
+      statHealthRegenEl.classList.add('stat-capped');
+  } else {
+      statHealthRegenEl.classList.remove('stat-capped');
   }
-  statArmorEl.textContent = `${player.defense.toFixed(1)} (${damageReductionPercentage.toFixed(1)}%)`; // Display armor with percentage, fixed to 1 decimal
+
+  statDamageEl.textContent = player.attack.toFixed(1);
+  // Calculate raw damage reduction percentage for armor display
+  // Use the global ARMOR_K_VALUE
+  let rawDamageReductionPercentage = 0;
+  if (player.defense + ARMOR_K_VALUE > 0) {
+    // Avoid division by zero
+    rawDamageReductionPercentage = (player.defense / (player.defense + ARMOR_K_VALUE)) * 100;
+  }
+  // Apply hard cap for display
+  const displayedDamageReductionPercentage = Math.min(rawDamageReductionPercentage, 75);
+
+  statArmorEl.textContent = `${player.defense.toFixed(1)} (${displayedDamageReductionPercentage.toFixed(1)}%)`; // Display armor with percentage, fixed to 1 decimal
+  
+  // Apply green color if armor reduction is capped
+  if (rawDamageReductionPercentage >= 75) {
+      statArmorEl.classList.add('stat-capped');
+  } else {
+      statArmorEl.classList.remove('stat-capped');
+  }
+
   statCriticalChanceEl.textContent = `${player.criticalChance.toFixed(1)}%`; // Display with one decimal and %
-  statHasteEl.textContent = `${player.haste.toFixed(1)}%`; // NEW: Display Haste with one decimal and %
-  // NEW: Update zone button states (both side panel and main navigation)
+  statHasteEl.textContent = `${player.haste.toFixed(1)}%`; // Display haste with one decimal and %
+  
   updateZoneButtons();
-  // NEW: Update enemy attack power display
+  
   enemyAttackPowerDisplayEl.textContent = `AP: ${enemy.attack}`;
-  // Update Talent Points Display
   talentPointsDisplayEl.textContent = `Unspent Talent Points: ${unspentTalentPoints}`;
   
-  // Update talent button states
   updateTalentButtonStates();
 }
 
@@ -909,27 +964,10 @@ function onTalentClick(talentKey) {
     talent.currentRank++;
     unspentTalentPoints--;
     
-    // Apply the bonus based on talent type
-    const totalBonus = talent.currentRank * talent.bonusPerRank;
-    switch(talentKey) {
-      case 'attackSpeed':
-        player.haste = player.baseHaste + totalBonus;
-        break;
-      case 'criticalStrike':
-        player.criticalChance = player.baseCriticalChance + totalBonus;
-        break;
-      case 'healthRegen':
-        player.healthRegen = player.baseHealthRegen + totalBonus;
-        break;
-      case 'scalingArmor':
-        // Scale armor bonus with level (10% increase per level)
-        const scaledArmorBonus = totalBonus * (1 + player.level * 0.1);
-        player.defense = player.baseDefense + scaledArmorBonus;
-        break;
-    }
-    
-    // Update UI
-    updateUI();
+    // After updating the talent rank, simply call updatePlayerStats()
+    // The updatePlayerStats function already handles applying talent bonuses
+    // to the player's current stats.
+    updatePlayerStats();
     logMessage(`Invested a point in ${talent.name}! (${talent.currentRank}/${talent.maxRank})`);
   }
 }
@@ -963,8 +1001,8 @@ function logMessage(message) {
  */
 function calculateXpToNextLevel(level) {
   // Using a power function for exponential growth in XP requirement
-  // Math.pow(level, 1.5) provides a good curve where higher levels take significantly more XP
-  return Math.floor(100 * Math.pow(level, 1.5));
+  // Adjusted base from 100 to 80 to make early leveling slightly faster
+  return Math.floor(80 * Math.pow(level, 1.6));
 }
 /**
  * Handles player leveling up.
@@ -973,8 +1011,9 @@ function levelUp() {
   // Only allow leveling up if not at max level
   if (player.level < MAX_LEVEL) {
     player.level++;
-    // Recalculate baseAttack based on the new scaling formula
-    player.baseAttack = Math.floor(10 + Math.pow(player.level, 1.1)); // Changed 5 to 10 for base scaling
+    // Recalculate baseAttack based on the new exponential scaling formula
+    player.baseAttack = Math.floor(PLAYER_BASE_ATTACK_START * Math.pow(PLAYER_BASE_ATTACK_SCALING_FACTOR, player.level));
+    
     player.baseMaxHp += 5; // Reduced from 20
     player.baseDefense += 1; // Reduced from 2
     player.baseHealthRegen += 0.05; // Reduced from 0.1
@@ -1037,7 +1076,6 @@ function updateGhostForm() {
     ghostFormOverlayEl.classList.add('hidden'); // Hide ghost form overlay
     player.hp = player.maxHp; // Heal player to full HP
     logMessage('You have returned from Ghost Form with full HP!');
-    // NEW: Logic to move to previous zone if not in the first zone
     const currentIndex = levelZones.findIndex(zone => zone.name === currentZone.name);
     if (currentIndex > 0) {
       const newZone = levelZones[currentIndex - 1];
@@ -1065,7 +1103,6 @@ function startResting() {
     else if (isGameOver) logMessage('Cannot rest, game is over.');
     return;
   }
-  // New: Prevent resting if HP is at or above 85%
   if (player.hp / player.maxHp >= REST_ENTRY_HP_THRESHOLD) {
     logMessage(`You are already at ${Math.round((player.hp / player.maxHp) * 100)}% HP. No need to rest. Rest at or below 85%.`);
     return;
@@ -1175,9 +1212,11 @@ function loadGame(event) {
       if (loadedState.talents) {
         talents = loadedState.talents;
         // Apply talent effects
-        const totalHasteBonus = talents.attackSpeed.currentRank * talents.attackSpeed.bonusPerRank;
-        player.haste = player.baseHaste + totalHasteBonus;
+        // These are now handled by updatePlayerStats() after loading
       }
+      // New: Load isHealthRegenCappedByStats with fallback
+      player.isHealthRegenCappedByStats = loadedState.player.isHealthRegenCappedByStats || false;
+
       // Re-initialize game intervals and update UI
       clearInterval(playerGameInterval);
       clearInterval(enemyGameInterval);
@@ -1245,19 +1284,19 @@ function resetGame() {
   player = {
     name: 'Edd',
     level: 1,
-    baseAttack: 0, // Will be calculated below
+    baseAttack: PLAYER_BASE_ATTACK_START, // Use new constant for initial base attack
     attack: 0,
     baseDefense: 0,
     defense: 0,
-    baseMaxHp: 200, // CHANGED from 100 to 150
-    maxHp: 200, // CHANGED from 100 to 150
-    baseHealthRegen: 1.0, // CHANGED from 0.5 to 1.0
-    healthRegen: 1.0, // CHANGED from 0.5 to 1.0
-    baseCriticalChance: 0, // Changed from 5 to 0. Critical chance will now primarily come from items/talents.
-    criticalChance: 0, // Current critical chance
-    baseHaste: 0, // NEW: Base Haste
-    haste: 0,     // NEW: Current Haste
-    hp: 200, // CHANGED from 100 to 150
+    baseMaxHp: PLAYER_INITIAL_BASE_MAX_HP, // Use new constant for initial base Max HP
+    maxHp: 0, // Will be calculated by updatePlayerStats
+    baseHealthRegen: 1.0,
+    healthRegen: 1.0,
+    baseCriticalChance: 0,
+    criticalChance: 0,
+    baseHaste: 0,
+    haste: 0,
+    hp: PLAYER_INITIAL_BASE_MAX_HP, // Initial HP
     xp: 0,
     xpToNextLevel: calculateXpToNextLevel(1), // Recalculate initial XP to next level
     gold: 0, // Reset gold
@@ -1267,10 +1306,11 @@ function resetGame() {
     equippedShoulders: null,
     equippedChest: null,
     equippedLegs: null,
-    equippedFeet: null // Reset feet slot
+    equippedFeet: null, // Reset feet slot
+    isHealthRegenCappedByStats: false // Reset health regen cap flag
   };
-  // Calculate initial baseAttack based on the new scaling formula for level 1
-  player.baseAttack = Math.floor(10 + Math.pow(player.level, 1.1)); // Changed 5 to 10 for base scaling
+  // The line below is no longer needed as baseAttack is set directly from constant above
+  // player.baseAttack = Math.floor(10 + Math.pow(player.level, 1.1));
   // Reset game flags and timers
   isGameOver = false;
   isGhostForm = false; // Reset ghost form flag
@@ -1292,7 +1332,15 @@ function resetGame() {
   talentPoints = 0;
   unspentTalentPoints = 0;
   talents.attackSpeed.currentRank = 0;
-  player.haste = player.baseHaste; // Reset haste to base value
+  talents.criticalStrike.currentRank = 0;
+  talents.healthRegen.currentRank = 0;
+  talents.scalingArmor.currentRank = 0;
+  // Reset player stats to base values, then updatePlayerStats will apply talents
+  player.haste = player.baseHaste; 
+  player.criticalChance = player.baseCriticalChance;
+  player.healthRegen = player.baseHealthRegen;
+  player.defense = player.baseDefense;
+
   // Set autoRestEnabled to true by default and update the checkbox
   autoRestEnabled = true;
   if (autoRestCheckbox) {
@@ -1408,13 +1456,13 @@ function spawnNewEnemy() {
   // Adjust enemy stats based on the chosen monsterLevel
   enemy.name = newEnemyName;
   enemy.level = monsterLevel; // Store enemy level
-  // Enemy HP scales with new formula: 50 × (1.12 ^ Level)
-  enemy.maxHp = Math.floor(75 * Math.pow(1.12, monsterLevel));
+  // Enemy HP scales with new formula: 75 × (NEW_ENEMY_HP_SCALING_FACTOR ^ Level)
+  enemy.maxHp = Math.floor(ENEMY_HP_BASE * Math.pow(ENEMY_HP_SCALING_FACTOR, monsterLevel));
   enemy.hp = enemy.maxHp;
   // Enemy attack scales with monster level (keeping existing linear scaling for attack as no new formula was provided)
-  enemy.attack = Math.floor(10 * Math.pow(1.08, monsterLevel)); // CHANGED: Doubled base attack from 5 to 10
-  // XP reward scales linearly with monster level
-  enemy.xpReward = Math.floor(20 + (monsterLevel - 1) * 2);
+  enemy.attack = Math.floor(ENEMY_ATTACK_BASE * Math.pow(ENEMY_ATTACK_SCALING_FACTOR, monsterLevel)); // CHANGED: Doubled base attack from 5 to 10
+  // XP reward scales exponentially with monster level
+  enemy.xpReward = Math.floor(ENEMY_XP_BASE * Math.pow(monsterLevel, ENEMY_XP_REWARD_EXPONENT));
   // Ensure XP reward and attack are at least 1
   if (enemy.xpReward < 1) enemy.xpReward = 1;
   if (enemy.attack < 1) enemy.attack = 1;
@@ -1447,7 +1495,6 @@ function playerAttack() {
   if (isGameOver || isGhostForm || isResting) return; // Do nothing if game is over, in ghost form, or resting
   console.log(`[playerAttack] Before attack: Enemy HP: ${enemy.hp}/${enemy.maxHp}`);
 
-  // NEW: Calculate player miss chance
   const currentMissChance = calculatePlayerMissChance(player.level, enemy.level);
   if (Math.random() * 100 < currentMissChance) {
       showCombatText('Miss!', false, enemyHpBarFillEl, false, true); // Show "Miss!" text
@@ -1523,14 +1570,21 @@ function enemyAttack() {
   // Apply damage variance to enemy attack
   incomingDamage = applyDamageVariance(incomingDamage, 0.2, 1); // 20% variance, min 100% of base for enemy
   const armor = player.defense;
-  const K = 100; // Define K as 100 as per your request
+  // Use the global ARMOR_K_VALUE
   // Calculate effective damage based on the new armor formula
-  // Effective_Damage = Incoming_Damage × (1 - (Armor / (Armor + K)))
-  let effectiveDamage = incomingDamage * (1 - armor / (armor + K));
+  // Effective_Damage = Incoming_Damage × (1 - (Armor / (Armor + ARMOR_K_VALUE)))
+  let damageReductionFactor = 0;
+  if (armor + ARMOR_K_VALUE > 0) {
+    damageReductionFactor = armor / (armor + ARMOR_K_VALUE);
+  }
+
+  // Apply hard cap of 75% (0.75) damage reduction
+  damageReductionFactor = Math.min(damageReductionFactor, 0.75);
+
+  let effectiveDamage = incomingDamage * (1 - damageReductionFactor);
   // Ensure damage is not negative
   effectiveDamage = Math.max(0, effectiveDamage);
 
-  // NEW: Apply damage multiplier if player is below zone's minLevel
   if (player.level < currentZone.minLevel) {
       const levelDifference = currentZone.minLevel - player.level;
       // Example: For every level below minLevel, increase damage by 20%
@@ -1578,8 +1632,10 @@ function gameLoop() {
   if (!isGameOver && !isGhostForm) {
     // Only update combat bars if not in special states (excluding resting for now)
     const currentTime = Date.now();
-    // Get current intervals based on game speed multiplier
-    const currentPlayerAttackInterval = BASE_PLAYER_ATTACK_INTERVAL_MS / gameSpeedMultiplier;
+    // Calculate haste factor, including talent bonuses
+    const hasteFactor = 1 + (player.haste / 100); // If haste is 100, factor is 2. If 0, factor is 1.
+    // Get current intervals based on game speed multiplier AND haste
+    const currentPlayerAttackInterval = BASE_PLAYER_ATTACK_INTERVAL_MS / gameSpeedMultiplier / hasteFactor;
     const currentEnemyAttackInterval = BASE_ENEMY_ATTACK_INTERVAL_MS / gameSpeedMultiplier;
     // Update Player Attack Bar and Timer
     const playerTimeElapsed = currentTime - playerAttackStartTime;
@@ -1606,7 +1662,6 @@ function gameLoop() {
     if (autoRestEnabled && !isResting && player.hp / player.maxHp <= REST_HP_THRESHOLD && enemy.hp <= 0) {
       startResting();
     }
-    // New: Check to end resting if player is at full HP AND minimum rest duration has passed
     // The resting state now ends only if both conditions are met.
     if (isResting && player.hp >= player.maxHp) {
       isResting = false; // Exit resting state
@@ -1844,6 +1899,7 @@ function autoSaveGame() {
       document.body.appendChild(indicator);
       
       // Remove indicator after animation
+      // Changed from 2s to 1s for faster removal
       indicator.addEventListener('animationend', () => {
           indicator.remove();
       });
@@ -1892,6 +1948,8 @@ function loadAutosave() {
       if (loadedState.talents) {
           talents = loadedState.talents;
       }
+      // New: Load isHealthRegenCappedByStats with fallback
+      player.isHealthRegenCappedByStats = loadedState.player.isHealthRegenCappedByStats || false;
 
       // Update all UI elements
       updateInventoryUI();
@@ -1991,10 +2049,13 @@ window.onload = function () {
   // Event listener for the new "Reset Game" button in settings
   if (resetGameFromSettingsBtn) {
     resetGameFromSettingsBtn.addEventListener('click', () => {
-      resetGame(); // Call the resetGame function
+      showConfirmationModal(
+        'Reset Game?',
+        'Are you sure you want to reset all game progress? This cannot be undone.',
+        resetGame
+      );
     });
   }
-  // NEW: Event listeners for save/load buttons
   if (saveGameBtn) {
       saveGameBtn.addEventListener('click', saveGame);
   }
@@ -2092,7 +2153,6 @@ window.onload = function () {
     helpOverlay.classList.remove('active'); // Hide help overlay
     document.body.classList.remove('help-active'); // Remove class from body to shift game area back
   });
-  // NEW: Event listeners for main zone navigation buttons
   prevZoneBtn.addEventListener('click', goToPreviousZone);
   nextZoneBtn.addEventListener('click', goToNextZone);
   // Event listeners for game speed radios
@@ -2101,9 +2161,9 @@ window.onload = function () {
       gameSpeedMultiplier = parseInt(event.target.value, 10);
       applyGameSpeed(); // Apply the new speed
     });
-  });
+  }
+  );
 
-  // NEW: Event listener for player name input
   playerNameInputEl.addEventListener('focus', () => {
       isPlayerNameInputFocused = true;
   });
@@ -2182,7 +2242,6 @@ function equipItem(itemInstanceId) {
   // --- Equip Logic ---
   else if (itemIndexInInventory !== -1) {
     // The item is in inventory, try to equip it.
-    // NEW: Check if item level is higher than player level
     if (itemToManage.itemLevel > player.level) {
       logMessage(
         `You cannot equip ${itemToManage.name} (Lvl ${itemToManage.itemLevel}). Your level is too low (Lvl ${player.level}).`
