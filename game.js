@@ -978,7 +978,6 @@ function levelUp() {
     player.baseMaxHp += 5; // Reduced from 20
     player.baseDefense += 1; // Reduced from 2
     player.baseHealthRegen += 0.05; // Reduced from 0.1
-    // player.baseCriticalChance += 0.2; // REMOVED: Critical Chance will now scale primarily from items/talents
     // Subtract XP needed for the just completed level
     player.xp -= player.xpToNextLevel;
     // If the player is now at max level, cap their XP at the max level's requirement
@@ -1850,10 +1849,10 @@ function autoSaveGame() {
       });
       
       console.log('Game autosaved successfully');
-      logMessage('Successful Autosave'); // Add a message to the battle log
+      //logMessage('Successful Autosave'); // Add a message to the battle log
   } catch (error) {
       console.error('Autosave failed:', error);
-      logMessage('Failed to autosave game'); // Also log failures
+      //logMessage('Failed to autosave game'); // Also log failures
   }
 }
 
@@ -1943,8 +1942,8 @@ window.onload = function () {
       }
   }
   
-  // Set up autosave interval (every 30 seconds)
-  setInterval(autoSaveGame, 30000);
+  // Set up autosave interval (every 60 seconds)
+  setInterval(autoSaveGame, 60000);
   
   // These updates are needed regardless of new game or loaded game
   updateUI();
