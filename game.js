@@ -1241,6 +1241,9 @@ function loadGame(event) {
  * This function now serves as the primary game initialization point.
  */
 function resetGame() {
+  // Clear autosave when resetting
+  localStorage.removeItem('idleGameAutosave');
+  
   // Clear all existing intervals to prevent multiple loops running
   clearInterval(playerGameInterval);
   clearInterval(enemyGameInterval);
@@ -1825,11 +1828,110 @@ function updateZoneButtons() {
   }
 }
 // Initial UI update when the page loads
+function autoSaveGame() {
+  try {
+      const gameState = {
+          player: player,
+          enemy: enemy,
+          inventory: inventory,
+          currentZoneName: currentZone.name,
+          gameSpeedMultiplier: gameSpeedMultiplier,
+          isGameOver: isGameOver,
+          isGhostForm: isGhostForm,
+          isResting: isResting,
+          autoRestEnabled: autoRestEnabled,
+          inventorySortOrder: inventorySortOrder,
+          ghostFormTimer: ghostFormTimer,
+          playerAttackStartTime: playerAttackStartTime,
+          enemyAttackStartTime: enemyAttackStartTime,
+          talentPoints: talentPoints,
+          unspentTalentPoints: unspentTalentPoints,
+          talents: talents,
+      };
+      localStorage.setItem('idleGameAutosave', JSON.stringify(gameState));
+      
+      // Show autosave indicator
+      const indicator = document.createElement('div');
+      indicator.className = 'autosave-indicator';
+      indicator.textContent = 'Game autosaved';
+      document.body.appendChild(indicator);
+      
+      // Remove indicator after animation
+      indicator.addEventListener('animationend', () => {
+          indicator.remove();
+      });
+      
+      console.log('Game autosaved successfully');
+  } catch (error) {
+      console.error('Autosave failed:', error);
+  }
+}
+
+function loadAutosave() {
+  try {
+      const savedGame = localStorage.getItem('idleGameAutosave');
+      if (!savedGame) {
+          console.log('No autosave found');
+          return false;
+      }
+
+      const loadedState = JSON.parse(savedGame);
+      
+      // Apply loaded state
+      player = loadedState.player;
+      enemy = loadedState.enemy;
+      inventory = loadedState.inventory;
+      currentZone = levelZones.find(zone => zone.name === loadedState.currentZoneName) || levelZones[0];
+      gameSpeedMultiplier = loadedState.gameSpeedMultiplier;
+      isGameOver = loadedState.isGameOver;
+      isGhostForm = loadedState.isGhostForm;
+      isResting = loadedState.isResting;
+      autoRestEnabled = loadedState.autoRestEnabled;
+      inventorySortOrder = loadedState.inventorySortOrder;
+      ghostFormTimer = loadedState.ghostFormTimer || 0;
+      playerAttackStartTime = loadedState.playerAttackStartTime || Date.now();
+      enemyAttackStartTime = loadedState.enemyAttackStartTime || Date.now();
+      talentPoints = loadedState.talentPoints || 0;
+      unspentTalentPoints = loadedState.unspentTalentPoints || 0;
+      
+      if (loadedState.talents) {
+          talents = loadedState.talents;
+      }
+
+      // Update all UI elements
+      updateInventoryUI();
+      updateGoldUI();
+      updatePlayerStats();
+      updateEquippedItemsUI();
+      updateUI();
+
+      if (autoRestCheckbox) {
+          autoRestCheckbox.checked = autoRestEnabled;
+      }
+
+      gameSpeedRadios.forEach(radio => {
+          radio.checked = (parseInt(radio.value, 10) === gameSpeedMultiplier);
+      });
+
+      logMessage('Autosave loaded successfully!');
+      return true;
+  } catch (error) {
+      console.error('Error loading autosave:', error);
+      return false;
+  }
+}
+
 window.onload = function () {
   // Set initial xpToNextLevel based on level 1
   player.xpToNextLevel = calculateXpToNextLevel(player.level);
-  // Manually set initial enemy stats based on player level 1
-  nextEnemy(); // Call nextEnemy to set up the first enemy based on zone/player level
+  
+  // Try to load autosave or start new game
+  if (!loadAutosave()) {
+      resetGame(); // Start new game if no autosave exists
+  }
+  
+  // Set up autosave interval (every 30 seconds)
+  setInterval(autoSaveGame, 30000);
   updateUI();
   updateGoldUI(); // Initial gold display update
   updatePlayerStats(); // Calculate initial player attack and defense based on base + equipped (none initially)
