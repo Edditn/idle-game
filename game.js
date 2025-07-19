@@ -802,7 +802,7 @@ function updateUI() {
   const regenPercentageOfMaxHp = (player.healthRegen / player.maxHp) * 100;
   statHealthRegenEl.textContent = `${currentRegenPerSecond.toFixed(2)} (${regenPercentageOfMaxHp.toFixed(1)}%)`;
 
-  statDamageEl.textContent = player.attack;
+  statDamageEl.textContent = player.attack.toFixed(1);
   // Calculate damage reduction percentage for armor display
   const K = 100; // Same K value as used in enemyAttack
   let damageReductionPercentage = 0;
