@@ -1564,7 +1564,7 @@ function enemyAttack() {
     if (!isGhostForm) {
       // Only enter ghost form if not already in it
       isGhostForm = true;
-      logMessage('Edd has been defeated! Entering Ghost Form...');
+      logMessage('You have been defeated! Entering Ghost Form...');
       clearInterval(playerGameInterval); // Stop player attacks
       clearInterval(enemyGameInterval); // Stop enemy attacks
       clearInterval(healthRegenInterval); // Stop health regen
