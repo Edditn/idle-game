@@ -1862,8 +1862,10 @@ function autoSaveGame() {
       });
       
       console.log('Game autosaved successfully');
+      logMessage('Successful Autosave'); // Add a message to the battle log
   } catch (error) {
       console.error('Autosave failed:', error);
+      logMessage('Failed to autosave game'); // Also log failures
   }
 }
 
