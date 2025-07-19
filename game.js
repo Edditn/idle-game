@@ -122,8 +122,8 @@ const ENEMY_HP_BASE = 75; // Base HP for enemy
 const ENEMY_HP_SCALING_FACTOR = 1.0750; // Increased exponential scaling for enemy HP (Changed from 1.050 to 1.0750)
 const ENEMY_ATTACK_BASE = 9.48; // Base Attack for enemy
 const ENEMY_ATTACK_SCALING_FACTOR = 1.0550; // Scaling for enemy attack
-const ENEMY_XP_BASE = 20; // Base XP for a level 1 monster
-const ENEMY_XP_REWARD_EXPONENT = 1.1; // Exponent for how monster XP scales with level
+const ENEMY_XP_BASE = 10; // Base XP for a level 1 monster
+const ENEMY_XP_REWARD_EXPONENT = 1.07; // Exponent for how monster XP scales with level
 
 // Define stat affixes and their weights (total weight 15 per affix for weapons, 15 for armor)
 const statAffixes = {
@@ -206,13 +206,13 @@ const items = {
 // Removed Leather items, Dagger, and Copper Sword. Significantly increased drop chances.
 const lootTable = [
   { item: items['Coin'], minQuantity: 3, maxQuantity: 8, dropChance: 5 }, // Kept the same
-  { item: items['Iron Sword'], minQuantity: 1, maxQuantity: 1, dropChance: 1.2 }, //1.5 still too much
-  { item: items['Iron Dagger'], minQuantity: 1, maxQuantity: 1, dropChance: 1.2 }, //1.5 still too much
-  { item: items['Iron Helmet'], minQuantity: 1, maxQuantity: 1, dropChance: 1.2 }, //1.5 still too much
-  { item: items['Iron Pauldrons'], minQuantity: 1, maxQuantity: 1, dropChance: 1.2 }, //1.5 still too much
-  { item: items['Iron Chestplate'], minQuantity: 1, maxQuantity: 1, dropChance: 1.2}, //1.5 still too much
-  { item: items['Iron Greaves'], minQuantity: 1, maxQuantity: 1, dropChance: 1.2 }, //1.5 still too much
-  { item: items['Iron Boots'], minQuantity: 1, maxQuantity: 1, dropChance: 1.2 } //1.5 still too much
+  { item: items['Iron Sword'], minQuantity: 1, maxQuantity: 1, dropChance: 1 }, //1.5 still too much
+  { item: items['Iron Dagger'], minQuantity: 1, maxQuantity: 1, dropChance: 1 }, //1.5 still too much
+  { item: items['Iron Helmet'], minQuantity: 1, maxQuantity: 1, dropChance: 1 }, //1.5 still too much
+  { item: items['Iron Pauldrons'], minQuantity: 1, maxQuantity: 1, dropChance: 1 }, //1.5 still too much
+  { item: items['Iron Chestplate'], minQuantity: 1, maxQuantity: 1, dropChance: 1}, //1.5 still too much
+  { item: items['Iron Greaves'], minQuantity: 1, maxQuantity: 1, dropChance: 1 }, //1.5 still too much
+  { item: items['Iron Boots'], minQuantity: 1, maxQuantity: 1, dropChance: 1 } //1.5 still too much
 ];
 let inventory = []; // Changed to an ARRAY to store item INSTANCES
 let talentPoints = 0;
