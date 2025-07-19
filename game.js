@@ -1958,8 +1958,8 @@ window.onload = function () {
     const listItem = event.target.closest('.inventory-list-item');
     if (listItem) {
       const itemId = listItem.dataset.itemId; // Get the unique ID
-      if (event.shiftKey) {
-        sellIndividualItem(itemId); // Sell item if Shift is held
+      if (event.ctrlKey) {
+        sellIndividualItem(itemId); // Sell item if CTRL is held
       } else {
         equipItem(itemId); // Otherwise, equip/unequip
       }
