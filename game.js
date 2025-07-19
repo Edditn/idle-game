@@ -1930,17 +1930,25 @@ window.onload = function () {
   // Try to load autosave or start new game
   if (!loadAutosave()) {
       resetGame(); // Start new game if no autosave exists
+      logMessage("Welcome to Edd's Test Project!"); // Initial message for new games
+  } else {
+      // If autosave was loaded successfully, start all necessary game systems
+      applyGameSpeed(); // Restart game intervals with proper speed
+      if (isGhostForm) {
+          ghostFormInterval = setInterval(updateGhostForm, GHOST_FORM_UPDATE_INTERVAL_MS);
+      }
   }
   
   // Set up autosave interval (every 30 seconds)
   setInterval(autoSaveGame, 30000);
+  
+  // These updates are needed regardless of new game or loaded game
   updateUI();
-  updateGoldUI(); // Initial gold display update
-  updatePlayerStats(); // Calculate initial player attack and defense based on base + equipped (none initially)
-  updateInventoryUI(); // Initial inventory display
-  updateEquippedItemsUI(); // Initial equipped items display
-  updateZoneButtons(); // Initial update of zone buttons
-  logMessage("Welcome to Edd's Test Project!"); // Initial message
+  updateGoldUI();
+  updatePlayerStats();
+  updateInventoryUI();
+  updateEquippedItemsUI();
+  updateZoneButtons();
   restartGameBtn.onclick = resetGame; // Set restart button action to directly call resetGame
   // Event delegation for inventory and equipped items
   inventoryListEl.addEventListener('click', event => {
