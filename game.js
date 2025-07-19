@@ -12,7 +12,7 @@
 
 // Game state variables
 let player = {
-  name: 'Edd',
+  name: 'Dadedadeur',
   level: 1,
   baseAttack: 10, // Base attack without equipment - now dynamically scaled
   attack: 10, // Current attack including equipment
