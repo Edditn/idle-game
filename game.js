@@ -137,12 +137,6 @@ const statAffixes = {
         haste: 0.50, // Higher for specialization (Increased to hit 60-70% range)
         types: ['weapon', 'dagger']
     },
-    'of the Serpent': { // Balanced weapon affix
-        attack: 113.75,
-        criticalChance: 0.15, // Increased for better balance
-        haste: 0.15, // Increased for better balance
-        types: ['weapon', 'dagger']
-    },
     // Armor Affixes (Defense, Max HP, Health Regen) - NEW VALUES (all scale exponentially with ITEM_SCALING_FACTOR_ARMOR)
     // No crit/haste on armor, as per original setup.
     'of the Boar': { // Defense focused
