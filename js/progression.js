@@ -9,7 +9,9 @@ import {
     talents,
     talentPoints,
     unspentTalentPoints,
-    incrementTalentPoints
+    incrementTalentPoints,
+    setUnspentTalentPoints,
+    decrementUnspentTalentPoints
 } from './gameState.js';
 import { calculateXpToNextLevel } from './utils.js';
 import { updateUI, logMessage } from './ui.js';
@@ -79,13 +81,13 @@ export function spendTalentPoint(talentKey) {
     
     // Spend the point
     talent.currentRank++;
-    unspentTalentPoints--;
+    decrementUnspentTalentPoints();
     
     logMessage(`${talent.name} upgraded to rank ${talent.currentRank}!`);
     
-    // Update player stats to reflect new talent bonuses
-    import('./gameState.js').then(() => {
-        updateUI();
+    // Update player stats to reflect new talent bonuses - import updatePlayerStats from main game
+    import('../game_modular.js').then(mainGame => {
+        mainGame.updatePlayerStats();
     });
     
     return true;

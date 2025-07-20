@@ -197,6 +197,12 @@ export function incrementTalentPoints() {
   unspentTalentPoints++;
 }
 
+export function decrementUnspentTalentPoints() {
+  if (unspentTalentPoints > 0) {
+    unspentTalentPoints--;
+  }
+}
+
 // Timeout ID setters
 export function setPlayerAttackTimeoutId(id) {
   playerAttackTimeoutId = id;

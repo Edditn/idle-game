@@ -36,13 +36,13 @@ export const PLAYER_BASE_ATTACK_START = 10;
 export const PLAYER_BASE_ATTACK_SCALING_FACTOR = 1.025;
 
 // Item scaling constants
-export const WEAPON_ATTACK_SCALING_PER_LEVEL = 8; // Increased from 5 to 8 for better high-level scaling
+export const WEAPON_ATTACK_SCALING_PER_LEVEL = 5; // Reduced from 8 to 5 for better low-level balance
 export const ARMOR_PRIMARY_SCALING_PER_LEVEL = {
-    maxHp: 35, // Back to original for proper high-level scaling
-    defense: 3, // Back to original for proper high-level scaling
-    healthRegen: 1.5 // Reduced from 4.0 to 1.5 - makes health regen gear less powerful early game
+    maxHp: 20, // Reduced from 35 to 20 for better low-level balance
+    defense: 2, // Reduced from 3 to 2 for better low-level balance
+    healthRegen: 1.0 // Reduced from 1.5 to 1.0 for more balanced early game
 };
-export const SECONDARY_STAT_SCALING_PER_LEVEL = 15; // Increased from 12 to 15
+export const SECONDARY_STAT_SCALING_PER_LEVEL = 8; // Reduced from 15 to 8 for better low-level balance
 
 // Enemy scaling constants
 export const ENEMY_HP_BASE = 75;
