@@ -344,7 +344,7 @@ export function updatePlayerStats() {
     player.healthRegen += equippedItemsHealthRegen;
 
     // Apply health regen cap
-    const maxRegenCapValue = player.maxHp * 0.10; // 10% cap (increased from 5%)
+    const maxRegenCapValue = player.maxHp * 0.10; // 10% cap - achievable with good gear investment
     player.isHealthRegenCappedByStats = (player.healthRegen >= maxRegenCapValue);
     player.healthRegen = Math.min(player.healthRegen, maxRegenCapValue);
 
@@ -580,6 +580,14 @@ function resetGame() {
     // Reset player stats
     player.name = 'Edd';
     player.level = 1;
+    player.baseAttack = 0;
+    player.attack = 0;
+    player.baseDefense = 0;
+    player.defense = 0;
+    player.baseMaxHp = 200;
+    player.maxHp = 200;
+    player.baseHealthRegen = 0.5;
+    player.healthRegen = 0.5;
     player.hp = 200;
     player.xp = 0;
     player.xpToNextLevel = 100;

@@ -40,7 +40,7 @@ export const WEAPON_ATTACK_SCALING_PER_LEVEL = 8; // Increased from 5 to 8 for b
 export const ARMOR_PRIMARY_SCALING_PER_LEVEL = {
     maxHp: 35, // Back to original for proper high-level scaling
     defense: 3, // Back to original for proper high-level scaling
-    healthRegen: 4.0 // Back to original for proper high-level scaling
+    healthRegen: 1.5 // Reduced from 4.0 to 1.5 - makes health regen gear less powerful early game
 };
 export const SECONDARY_STAT_SCALING_PER_LEVEL = 15; // Increased from 12 to 15
 
