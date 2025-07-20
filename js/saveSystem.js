@@ -116,6 +116,11 @@ function applyLoadedGameState(gameState) {
     // Restore player state
     Object.assign(player, gameState.player);
     
+    // Restore enemy state
+    if (gameState.enemy) {
+        Object.assign(enemy, gameState.enemy);
+    }
+    
     // Restore inventory (clear current and load saved)
     inventory.length = 0;
     if (gameState.inventory) {
@@ -205,6 +210,115 @@ export function importGameState(jsonString) {
         return true;
     } catch (error) {
         console.error('Import error:', error);
+        return false;
+    }
+}
+
+/**
+ * Automatically saves the game state to localStorage
+ */
+export function autoSaveGame() {
+    try {
+        const gameState = {
+            version: "1.0",
+            timestamp: new Date().toISOString(),
+            player: {
+                name: player.name,
+                level: player.level,
+                baseAttack: player.baseAttack,
+                attack: player.attack,
+                baseDefense: player.baseDefense,
+                defense: player.defense,
+                baseMaxHp: player.baseMaxHp,
+                maxHp: player.maxHp,
+                baseHealthRegen: player.baseHealthRegen,
+                healthRegen: player.healthRegen,
+                baseCriticalChance: player.baseCriticalChance,
+                criticalChance: player.criticalChance,
+                baseHaste: player.baseHaste,
+                haste: player.haste,
+                baseMastery: player.baseMastery,
+                mastery: player.mastery,
+                hp: player.hp,
+                xp: player.xp,
+                xpToNextLevel: player.xpToNextLevel,
+                gold: player.gold,
+                equippedWeapon: player.equippedWeapon,
+                equippedOffHand: player.equippedOffHand,
+                equippedHead: player.equippedHead,
+                equippedShoulders: player.equippedShoulders,
+                equippedChest: player.equippedChest,
+                equippedLegs: player.equippedLegs,
+                equippedFeet: player.equippedFeet
+            },
+            enemy: {
+                name: enemy.name,
+                level: enemy.level,
+                maxHp: enemy.maxHp,
+                hp: enemy.hp,
+                attack: enemy.attack,
+                xpReward: enemy.xpReward
+            },
+            inventory: inventory,
+            currentZone: currentZone.name,
+            talents: {
+                attackSpeed: talents.attackSpeed,
+                criticalStrike: talents.criticalStrike,
+                healthRegen: talents.healthRegen,
+                scalingArmor: talents.scalingArmor
+            },
+            shardspireFloor: shardspireFloor,
+            settings: {
+                autoRestEnabled: domElements.autoRestCheckbox?.checked || false,
+                autoSellStatsEnabled: domElements.autoSellStatsCheckbox?.checked || false,
+                autoSellCommonEnabled: domElements.autoSellCommonCheckbox?.checked || false,
+                autoSellUncommonEnabled: domElements.autoSellUncommonCheckbox?.checked || false,
+                autoSellRareEnabled: domElements.autoSellRareCheckbox?.checked || false,
+                gameSpeedMultiplier: parseFloat(document.querySelector('input[name="gameSpeed"]:checked')?.value || 1)
+            }
+        };
+        
+        localStorage.setItem('idleGameAutosave', JSON.stringify(gameState));
+        
+        // Show autosave indicator
+        const indicator = document.createElement('div');
+        indicator.className = 'autosave-indicator';
+        indicator.textContent = 'Game autosaved';
+        document.body.appendChild(indicator);
+        
+        // Remove indicator after animation
+        indicator.addEventListener('animationend', () => {
+            indicator.remove();
+        });
+        
+        console.log('Game autosaved successfully');
+        logMessage('Successful Autosave');
+    } catch (error) {
+        console.error('Autosave failed:', error);
+        logMessage('Failed to autosave game');
+    }
+}
+
+/**
+ * Loads the autosaved game state from localStorage
+ */
+export function loadAutosave() {
+    try {
+        const savedGame = localStorage.getItem('idleGameAutosave');
+        if (!savedGame) {
+            console.log('No autosave found');
+            return false;
+        }
+
+        const loadedState = JSON.parse(savedGame);
+        
+        // Apply the loaded state using existing function
+        applyLoadedGameState(loadedState);
+        
+        logMessage('Autosave loaded successfully!');
+        return true;
+    } catch (error) {
+        console.error('Error loading autosave:', error);
         return false;
     }
 }

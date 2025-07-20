@@ -93,7 +93,7 @@ import { startHealthRegenLoop } from './js/healthSystem.js';
 import { spawnNextEnemy } from './js/enemySystem.js';
 import { levelUp, spendTalentPoint } from './js/progression.js';
 import { startCombat, stopCombat } from './js/combat.js';
-import { saveGame, loadGame, handleLoadFile } from './js/saveSystem.js';
+import { saveGame, loadGame, handleLoadFile, autoSaveGame, loadAutosave } from './js/saveSystem.js';
 
 // Initialize game when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -106,10 +106,36 @@ document.addEventListener('DOMContentLoaded', function() {
  * Initialize the game
  */
 function initializeGame() {
-    // Calculate initial player base attack
-    player.baseAttack = PLAYER_BASE_ATTACK_START * Math.pow(PLAYER_BASE_ATTACK_SCALING_FACTOR, player.level - 1);
+    // Try to load autosave first
+    if (!loadAutosave()) {
+        // If no autosave, start fresh game
+        // Calculate initial player base attack
+        player.baseAttack = PLAYER_BASE_ATTACK_START * Math.pow(PLAYER_BASE_ATTACK_SCALING_FACTOR, player.level - 1);
+        
+        // Log initial message
+        logMessage("Welcome to Edd's Test Project!");
+        
+        // Start initial enemy spawn
+        spawnEnemy();
+        
+        // Start combat system
+        startCombat();
+    } else {
+        // Autosave loaded successfully, continue with loaded state
+        logMessage('Game loaded from autosave!');
+        
+        // Ensure we have an enemy and combat is running
+        if (enemy.hp <= 0) {
+            spawnEnemy(); // Spawn new enemy if current one is dead
+        }
+        
+        // Start combat system if not in special states
+        if (!isGameOver && !isGhostForm && !isResting) {
+            startCombat();
+        }
+    }
     
-    // Update player stats and UI
+    // Update player stats and UI (needed for both new and loaded games)
     updatePlayerStats();
     updateUI();
     
@@ -117,12 +143,11 @@ function initializeGame() {
     updateInventoryUI();
     updateEquippedItemsUI();
     
-    // Log initial message
-    logMessage('Game started! Fight monsters to gain experience and loot.');
-    
     // Start game systems
     startHealthRegenLoop();
-    spawnEnemy();
+    
+    // Set up autosave interval (every 60 seconds)
+    setInterval(autoSaveGame, 60000);
 }
 
 /**
@@ -549,6 +574,9 @@ function setupSaveLoad() {
  * Resets the entire game
  */
 function resetGame() {
+    // Clear autosave when resetting
+    localStorage.removeItem('idleGameAutosave');
+    
     // Reset player stats
     player.name = 'Edd';
     player.level = 1;
