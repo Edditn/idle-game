@@ -360,11 +360,13 @@ function updateTalentButtonStates() {
 /**
  * Updates inventory UI - full implementation
  */
-export function updateInventoryUI(forceUpdate = false) {
+export function updateInventoryUI(forceUpdate = false, retryCount = 0) {
     // Only clear and rebuild if no tooltip is currently visible to prevent flickering
     // Unless this is a forced update (like when unequipping items)
     const tooltipVisible = domElements.itemTooltip.classList.contains('visible');
-    if (tooltipVisible && !forceUpdate) {
+    if (tooltipVisible && !forceUpdate && retryCount < 3) {
+        // Schedule a retry after a short delay to ensure the update happens (max 3 retries)
+        setTimeout(() => updateInventoryUI(true, retryCount + 1), 100);
         return; // Don't rebuild inventory while tooltip is showing
     }
     
@@ -430,11 +432,13 @@ export function updateInventoryUI(forceUpdate = false) {
 /**
  * Updates equipped items UI
  */
-export function updateEquippedItemsUI(forceUpdate = false) {
+export function updateEquippedItemsUI(forceUpdate = false, retryCount = 0) {
     // Only clear and rebuild if no tooltip is currently visible to prevent flickering
     // Unless this is a forced update (like when unequipping items)
     const tooltipVisible = domElements.itemTooltip.classList.contains('visible');
-    if (tooltipVisible && !forceUpdate) {
+    if (tooltipVisible && !forceUpdate && retryCount < 3) {
+        // Schedule a retry after a short delay to ensure the update happens (max 3 retries)
+        setTimeout(() => updateEquippedItemsUI(true, retryCount + 1), 100);
         return; // Don't rebuild equipped items while tooltip is showing
     }
     

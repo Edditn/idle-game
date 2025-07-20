@@ -45,7 +45,7 @@ export function rollForLoot() {
                         logMessage(`You found a Lvl ${itemInstance.itemLevel} ${itemInstance.rarity} ${itemInstance.name} ${itemInstance.affix.name}!`);
                     }
                 }
-                updateInventoryUI();
+                updateInventoryUI(true); // Force update to ensure immediate refresh
             }
         }
     }

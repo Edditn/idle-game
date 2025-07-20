@@ -16,7 +16,7 @@ import {
     autoSellRareEnabled 
 } from './gameState.js';
 import { logMessage } from './ui.js';
-import { updateInventoryUI, updateGoldUI } from './ui.js';
+import { updateInventoryUI, updateGoldUI, hideTooltip } from './ui.js';
 
 /**
  * Creates an item by type name, level, and rarity
@@ -55,7 +55,7 @@ export function createItem(itemType, itemLevel, rarity = 'Common') {
       name: randomAffixName,
     },
     ...stats,
-    sellPrice: itemLevel * 1
+    sellPrice: Math.max(1, Math.floor(itemLevel * (rarities[rarity]?.goldMultiplier || 1)))
   };
 }
 
@@ -85,7 +85,7 @@ export function addItemToInventory(itemData, quantity = 1, droppedByEnemyLevel =
         logMessage(`You found a Lvl ${newItem.itemLevel} ${newItem.rarity} ${newItem.name} ${newItem.affix.name}!`);
       }
     }
-    updateInventoryUI();
+    updateInventoryUI(true); // Force update to ensure immediate refresh
   }
 }
 
@@ -129,7 +129,7 @@ export function createItemInstance(itemData, droppedByEnemyLevel) {
       name: randomAffixName,
     },
     ...stats,
-    sellPrice: itemActualLevel * 1
+    sellPrice: Math.max(1, Math.floor(itemActualLevel * (rarities[rolledRarity]?.goldMultiplier || 1)))
   };
 }
 
@@ -384,7 +384,7 @@ function sellAllItemsConfirmed() {
   
   // Update UI
   updateGoldUI();
-  updateInventoryUI();
+  updateInventoryUI(true); // Force update to ensure immediate refresh
   
   // Update player stats if items were unequipped
   if (equippedItemIdsInInventory.length > 0) {
@@ -433,9 +433,12 @@ export function sellIndividualItem(itemId) {
   
   logMessage(`You sold a Lvl ${itemToSell.itemLevel} ${itemToSell.rarity} ${itemToSell.name} for ${itemToSell.sellPrice} Gold.`);
   
-  // Update UI
+  // Hide tooltip if visible (to prevent UI update issues)
+  hideTooltip();
+  
+  // Update UI - force update to ensure immediate refresh
   updateGoldUI();
-  updateInventoryUI();
+  updateInventoryUI(true); // Force update
   
   if (wasEquipped) {
     import('./ui.js').then(uiModule => {

@@ -27,7 +27,7 @@ export function calculateXpToNextLevel(level) {
   if (level >= MAX_LEVEL) {
     return 0; // No more XP needed at max level
   }
-  return Math.floor(100 * Math.pow(1.1, level - 1));
+  return Math.floor(100 * Math.pow(1.15, level - 1));
 }
 
 /**

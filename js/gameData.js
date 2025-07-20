@@ -49,11 +49,11 @@ export const items = {
 
 export const lootTable = [
   { item: items['Coin'], minQuantity: 3, maxQuantity: 8, dropChance: 5 },
-  { item: items['Iron Sword'], minQuantity: 1, maxQuantity: 1, dropChance: 0.5 },
-  { item: items['Iron Dagger'], minQuantity: 1, maxQuantity: 1, dropChance: 0.5 },
-  { item: items['Iron Helmet'], minQuantity: 1, maxQuantity: 1, dropChance: 0.5 },
-  { item: items['Iron Pauldrons'], minQuantity: 1, maxQuantity: 1, dropChance: 0.5 },
-  { item: items['Iron Chestplate'], minQuantity: 1, maxQuantity: 1, dropChance: 0.5 },
-  { item: items['Iron Greaves'], minQuantity: 1, maxQuantity: 1, dropChance: 0.5 },
-  { item: items['Iron Boots'], minQuantity: 1, maxQuantity: 1, dropChance: 0.5 }
+  { item: items['Iron Sword'], minQuantity: 1, maxQuantity: 1, dropChance: 0.75 },
+  { item: items['Iron Dagger'], minQuantity: 1, maxQuantity: 1, dropChance: 0.75 },
+  { item: items['Iron Helmet'], minQuantity: 1, maxQuantity: 1, dropChance: 0.75 },
+  { item: items['Iron Pauldrons'], minQuantity: 1, maxQuantity: 1, dropChance: 0.75 },
+  { item: items['Iron Chestplate'], minQuantity: 1, maxQuantity: 1, dropChance: 0.75 },
+  { item: items['Iron Greaves'], minQuantity: 1, maxQuantity: 1, dropChance: 0.75 },
+  { item: items['Iron Boots'], minQuantity: 1, maxQuantity: 1, dropChance: 0.75 }
 ];

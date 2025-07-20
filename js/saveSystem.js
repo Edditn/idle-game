@@ -180,7 +180,7 @@ function applyLoadedGameState(gameState) {
     
     // Update all UI elements after stats are recalculated
     updateUI();
-    updateInventoryUI();
+    updateInventoryUI(true); // Force update after loading save
     updateEquippedItemsUI();
     
     // Clear the file input

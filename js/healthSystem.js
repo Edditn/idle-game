@@ -23,14 +23,28 @@ import { pauseCombat, resumeCombat } from './combat.js';
 
 let restTimer = 0;
 let restStartTime = 0;
+let healthRegenIntervalId = null;
 
 /**
  * Starts the health regeneration system
  */
 export function startHealthRegenLoop() {
-    setInterval(() => {
+    // Clear existing interval if it exists
+    if (healthRegenIntervalId) {
+        clearInterval(healthRegenIntervalId);
+    }
+    
+    // Start new interval with current game speed
+    healthRegenIntervalId = setInterval(() => {
         applyHealthRegen();
     }, BASE_HEALTH_REGEN_INTERVAL_MS / gameSpeedMultiplier);
+}
+
+/**
+ * Restarts the health regeneration loop with new game speed
+ */
+export function restartHealthRegenLoop() {
+    startHealthRegenLoop();
 }
 
 /**
@@ -89,8 +103,6 @@ export function startRest() {
     setResting(true);
     pauseCombat();
     
-    logMessage('You begin resting to recover health...');
-    
     restStartTime = Date.now();
     startRestCountdown();
     updateUI();
@@ -133,9 +145,7 @@ export function endRest() {
         clearInterval(restInterval);
         setRestInterval(null);
     }
-    
-    logMessage('You finish resting and feel refreshed!');
-    
+     
     // If no enemy exists (because we were resting after defeating one), spawn next enemy
     if (!enemy || enemy.hp <= 0) {
         import('./gameState.js').then(gameModule => {

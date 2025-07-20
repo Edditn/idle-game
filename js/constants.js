@@ -49,5 +49,5 @@ export const ENEMY_HP_BASE = 75;
 export const ENEMY_HP_SCALING_FACTOR = 1.0975;
 export const ENEMY_ATTACK_BASE = 10;
 export const ENEMY_ATTACK_SCALING_FACTOR = 1.080;
-export const ENEMY_XP_BASE = 10;
+export const ENEMY_XP_BASE = 8;
 export const ENEMY_XP_REWARD_EXPONENT = 1.07;

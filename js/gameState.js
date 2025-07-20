@@ -158,6 +158,11 @@ export function setAutoSellRareEnabled(state) {
 
 export function setGameSpeedMultiplier(multiplier) {
   gameSpeedMultiplier = multiplier;
+  
+  // Restart systems that depend on intervals
+  import('./healthSystem.js').then(healthModule => {
+    healthModule.restartHealthRegenLoop();
+  });
 }
 
 export function setInventorySortOrder(order) {

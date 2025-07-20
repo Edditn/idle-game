@@ -140,7 +140,7 @@ function initializeGame() {
     updateUI();
     
     // Initialize inventory and equipment display
-    updateInventoryUI();
+    updateInventoryUI(true); // Force update during initialization
     updateEquippedItemsUI();
     
     // Start game systems
@@ -263,7 +263,7 @@ function setupEventListeners() {
     
     if (domElements.sortInventoryBtn) {
         domElements.sortInventoryBtn.addEventListener('click', () => {
-            updateInventoryUI();
+            updateInventoryUI(true); // Force update for sorting
             logMessage('Inventory sorted by level (descending).');
         });
     }
@@ -512,7 +512,6 @@ function equipItemById(itemId) {
  * Unequips an item by its ID
  */
 function unequipItemById(itemId) {
-    console.log('Attempting to unequip item with ID:', itemId); // Debug log
     let unequippedItem = null;
     let slotName = '';
     
@@ -524,7 +523,6 @@ function unequipItemById(itemId) {
             unequippedItem = player[slot];
             player[slot] = null;
             slotName = slot;
-            console.log('Found item in slot:', slot); // Debug log
             break;
         }
     }
@@ -540,9 +538,6 @@ function unequipItemById(itemId) {
             uiModule.updateInventoryUI(true); // Force update
             uiModule.updateEquippedItemsUI(true); // Force update
         });
-        console.log('Item unequipped successfully'); // Debug log
-    } else {
-        console.log('Item not found for unequipping'); // Debug log
     }
 }
 

@@ -162,7 +162,7 @@ function executePlayerAttack() {
     
     if (Math.random() * 100 < missChance) {
         showCombatText("Miss!", false, domElements.enemyHpBarFill, false, true);
-        logMessage(`${player.name} missed!`);
+        logMessage(`You missed!`);
         return;
     }
     
@@ -191,7 +191,7 @@ function executePlayerAttack() {
     
     // Log the attack
     const critText = isCritical ? " (Critical!)" : "";
-    logMessage(`You Deal: ${Math.floor(damage)}${critText}`);
+    logMessage(`You Deal ${Math.floor(damage)} Damage${critText}`);
     
     updateUI();
     
@@ -264,10 +264,7 @@ function handleEnemyDefeat() {
     import('./healthSystem.js').then(healthModule => {
         const shouldRest = healthModule.checkAutoRestAfterCombat();
         
-        if (shouldRest) {
-            // Player started resting - enemy will spawn when rest ends
-            logMessage('Auto-rest activated. Next enemy will appear after rest.');
-        } else {
+        if (!shouldRest) {
             // No rest needed - spawn next enemy after normal delay
             import('./gameState.js').then(gameModule => {
                 gameModule.setEnemySpawnPending(true);
@@ -283,6 +280,7 @@ function handleEnemyDefeat() {
                 });
             }, ENEMY_SPAWN_DELAY_MS / gameSpeedMultiplier);
         }
+        // If shouldRest is true, the health system handles enemy spawning after rest ends
     });
     
     updateUI();
@@ -294,8 +292,6 @@ function handleEnemyDefeat() {
 function handlePlayerDefeat() {
     // Stop combat timers
     stopCombat();
-    
-    logMessage(`${player.name} has been defeated!`);
     
     // Enter ghost form
     import('./ghostForm.js').then(module => {
