@@ -189,10 +189,6 @@ function executePlayerAttack() {
     // Show combat text
     showCombatText(damage, isCritical, domElements.enemyHpBarFill, false, false);
     
-    // Log the attack
-    const critText = isCritical ? " (Critical!)" : "";
-    logMessage(`You Deal ${Math.floor(damage)} Damage${critText}`);
-    
     updateUI();
     
     // Check if enemy is defeated
@@ -224,9 +220,6 @@ function executeEnemyAttack() {
     // Show combat text
     showCombatText(damage, false, domElements.playerHpBarFill, true, false);
     
-    // Log the attack
-    logMessage(`Damage Taken: ${Math.floor(damage)}`);
-    
     updateUI();
     
     // Check if player is defeated
@@ -242,9 +235,14 @@ function handleEnemyDefeat() {
     // Stop combat timers
     stopCombat();
     
-    // Award XP
-    player.xp += enemy.xpReward;
-    logMessage(`${enemy.name} defeated! You gained ${enemy.xpReward} XP!`);
+    // Award XP with anti-farming reduction
+    let xpGained = enemy.xpReward;
+    if (player.level >= enemy.level + 3) {
+        xpGained = Math.floor(enemy.xpReward * 0.1); // 90% reduction for overleveled farming
+    }
+    
+    player.xp += xpGained;
+    logMessage(`${enemy.name} defeated! You gained ${xpGained} XP!`);
     
     // Check for level up
     if (player.xp >= player.xpToNextLevel && player.level < 100) {
