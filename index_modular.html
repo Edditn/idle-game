@@ -57,15 +57,19 @@
           <input class="mr-2 h-4 w-4 text-blue-600 rounded focus:ring-blue-500" id="darkModeToggle" type="checkbox" />
           <label class="text-gray-300 text-sm font-bold" for="darkModeToggle">Enable Dark Mode</label>
         </div>
-        <button class="button mt-6 w-full" id="saveGameBtn">Save Game</button>
+        <button class="button mt-6 w-full" id="saveGameFromSettingsBtn">Save Game</button>
         <!-- Changed from <label> to <button> for consistent styling -->
-        <button class="button mt-4 w-full" id="loadGameBtn">Load Game</button>
-        <input accept=".txt,.json" class="hidden" id="loadFileInput" type="file" />
+        <button class="button mt-4 w-full" id="loadGameFromSettingsBtn">Load Game</button>
         <button class="button mt-4 w-full" id="resetGameFromSettingsBtn">Reset Game</button>
-        <button class="absolute top-4 right-4 text-gray-400 hover:text-white text-3xl" id="closeSettings">×</button>
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-white text-3xl" id="closeSettingsButton">×</button>
       </div>
     </div>
     <div id="main-game-area">
+      <!-- Error Message Display -->
+      <div id="errorMessageDisplay" class="error-message hidden">
+        Error message will appear here.
+      </div>
+      
       <!-- Player Stats Container (stays on left) -->
       <div id="player-stats-container">
         <div class="section-title">Your Stats</div>
@@ -95,11 +99,38 @@
             <span>Haste:</span>
             <span id="stat-haste"></span>
           </div>
+          <!-- NEW: Mastery Stat Display -->
+          <div class="stats-item">
+            <span>Mastery:</span>
+            <span id="stat-mastery"></span>
+          </div>
         </div>
         <!-- Moved Auto-Rest checkbox here -->
         <div class="flex items-center mt-4">
           <input checked="" class="mr-2 h-4 w-4 text-blue-600 rounded focus:ring-blue-500" id="autoRestCheckbox" type="checkbox" />
           <label class="text-gray-300 text-sm font-bold" for="autoRestCheckbox">Auto-Rest at 35% HP</label>
+        </div>
+        <!-- Auto-Sell Controls -->
+        <div class="mt-4">
+          <div class="flex items-center mb-2">
+            <input class="mr-2 h-4 w-4 text-blue-600 rounded focus:ring-blue-500" id="autoSellStatsCheckbox" type="checkbox" />
+            <label class="text-gray-300 text-sm font-bold" for="autoSellStatsCheckbox">Auto-Sell Items with ≤ Stats</label>
+          </div>
+          <div class="text-gray-300 text-xs mb-2 ml-6">Auto Sell by Rarity:</div>
+          <div class="ml-6 space-y-1">
+            <div class="flex items-center">
+              <input class="mr-2 h-3 w-3 text-blue-600 rounded focus:ring-blue-500" id="autoSellCommonCheckbox" type="checkbox" />
+              <label class="text-gray-300 text-xs" for="autoSellCommonCheckbox">Common</label>
+            </div>
+            <div class="flex items-center">
+              <input class="mr-2 h-3 w-3 text-blue-600 rounded focus:ring-blue-500" id="autoSellUncommonCheckbox" type="checkbox" />
+              <label class="text-gray-300 text-xs" for="autoSellUncommonCheckbox">Uncommon</label>
+            </div>
+            <div class="flex items-center">
+              <input class="mr-2 h-3 w-3 text-blue-600 rounded focus:ring-blue-500" id="autoSellRareCheckbox" type="checkbox" />
+              <label class="text-gray-300 text-xs" for="autoSellRareCheckbox">Rare</label>
+            </div>
+          </div>
         </div>
         <!-- Removed difficulty checkboxes here -->
         <div class="mt-4 w-full">
@@ -126,6 +157,13 @@
           <button class="button px-3 py-2 text-xl" id="prevZoneBtn">&lt;</button>
           <h2 class="text-2xl font-bold text-center text-white" id="main-current-zone-display"></h2>
           <button class="button px-3 py-2 text-xl" id="nextZoneBtn">&gt;</button>
+        </div>
+        <!-- Shardspire Floor Controls (only visible in Shardspire) -->
+        <div class="shardspire-floor-controls hidden flex items-center justify-center gap-4 mb-4" id="shardspireFloorControls">
+          <button class="button px-3 py-2 text-sm" id="floorDownBtn">Floor -</button>
+          <span class="text-lg font-bold text-white" id="shardspireFloorDisplay">Floor 1</span>
+          <button class="button px-3 py-2 text-sm" id="floorUpBtn">Floor +</button>
+          <span class="text-sm text-gray-300 ml-2" id="shardspireFloorRange">(Lv 100-105)</span>
         </div>
         <div class="character-stats">
           <!-- Editable Player Name Input -->
@@ -261,87 +299,48 @@
       </div>
     </div>
     <!-- Item Tooltip -->
-    <div class="hidden" id="item-tooltip"></div>
+    <div class="item-tooltip" id="item-tooltip">
+      <div class="item-tooltip-content">
+        <div class="item-name"></div>
+        <div class="item-type"></div>
+        <div class="item-level"></div>
+        <div class="item-stats"></div>
+        <div class="item-comparison"></div>
+      </div>
+    </div>
     <!-- Help Overlay -->
     <div id="helpOverlay">
-      <button class="close-button">×</button>
-      <h2 class="text-2xl font-bold mb-4 text-white">Help m</h2>
-      <div class="text-gray-300 text-lg leading-relaxed">
-        <p class="mb-2">Welcome to Edd's Test Project, an idle game where your character battles enemies automatically!</p>
-        <br />
-        <p class="mb-2">
-          <strong>Your Character:</strong>
-          Displays your current level, health, health regen(and % max hp/sec), damage, armor(and %reduction), critical chance and haste. Your stats increase as you level up.
-        </p>
-        <br />
-        <p class="mb-2">
-          <strong>Current Enemy:</strong>
-          Shows the enemy you are currently fighting, their level, and health. Enemies scale with your level.
-        </p>
-        <br />
-        <p class="mb-2">
-          <strong>Controls</strong>
-          Hold SHIFT and LEFT-CLICK to sell individual items from your inventory.
-        </p>
-        <br />
-        <p class="mb-2">
-          <strong>Battle Log:</strong>
-          Keeps a record of combat events, including damage dealt and taken, and items found.
-        <br />
-        <p class="mb-2">
-          <strong>Experience:</strong>
-          Defeating enemies grants you XP. Fill the XP bar to level up and become stronger!
-        </p>
-        <br />
-        <p class="mb-2">
-          <strong>Selling</strong>
-          SELL ALL button will actually sell everything, even items acquired AFTER clicking the SELL ALL BUTTON!
-        </p>
-        <br />
-        <p class="mb-2">
-          <strong>Inventory:</strong>
-          Here you'll find all the items you pick up from defeated enemies. Items have different levels and rarities, which boost their
-          stats.
-        </p>
-        <br />
-        <p class="mb-2">
-          <strong>Equipped Items:</strong>
-          Left click items from your inventory to equip them. Equipping items will boost your character's stats. Click an equipped item to unequip
-          it. You can hover over a potential upgrade to compare the item with what you have equipped.
-        </p>
-        <br />
-        <p class="mb-2">
-          <strong>Gold:</strong>
-          Earn gold from enemies to use for future features (coming soon!).
-        </p>
-        <br />
-        <p class="mb-2">
-          <strong>Auto-Rest:</strong>
-          Check this box to automatically rest when your HP drops below 35% and no enemy is present. Resting will increase your current
-          health regen stat x10!
-        </p>
-        <br />
-        <p class="mb-2">
-          <strong>Force Rest:</strong>
-          Click this button to manually enter the resting state, even if you are in combat. Your current enemy will flee.
-        </p>
-        <br />
-        <p class="mb-2">
-          <strong>You died?</strong>
-          If you die, you will enter ghost form. You are unable to take actions for 45 seconds. This death timer does not scale with game speed, so dont die!
-        </p>
-        <br />
-        <p class="mb-2">
-          <strong>Settings:</strong>
-          The gear icon in the top right opens game settings, for now you can manually save a .json file on your computer. If you later start the game again you are required to upload that file to continue your progress, otherwise you will have to start again.
-        </p>
-        <br /><p class="mb-2">
-          <strong>Game Speed:</strong>
-          At the top left, there are game speed modifiers, these will make the game run faster. Attack speed, health regen, and spawnrate are all increased. Ghost form is not!
-        </p>
-        <br />
-        <p class="mb-2">Good luck, adventurer!</p>
-        <br />
+      <div class="help-content">
+        <h2>Game Help</h2>
+        <div class="help-section">
+          <h3>Objective</h3>
+          <p>Defeat enemies to gain experience, level up, and find better equipment!</p>
+        </div>
+        <div class="help-section">
+          <h3>Combat</h3>
+          <p>Combat is automatic. Your attack speed and the enemy's attack speed determine how fast attacks happen.</p>
+        </div>
+        <div class="help-section">
+          <h3>Death</h3>
+          <p>When you die, you enter Ghost Form for 20 seconds, then you can continue fighting.</p>
+        </div>
+        <div class="help-section">
+          <h3>Zones</h3>
+          <p>Use the zone navigation buttons to move between areas with different enemy levels.</p>
+        </div>
+        <div class="help-section">
+          <h3>Auto-Rest</h3>
+          <p>Enable this to automatically rest when your health drops to 35%.</p>
+        </div>
+        <div class="help-section">
+          <h3>Auto-Sell</h3>
+          <p>Configure which items to automatically sell based on stats or rarity.</p>
+        </div>
+        <div class="help-section">
+          <h3>Talents</h3>
+          <p>Spend talent points gained from leveling to improve your character permanently.</p>
+        </div>
+        <button id="helpCloseButton">Close</button>
       </div>
     </div>
     <!-- Custom Confirmation Modal -->
@@ -355,8 +354,11 @@
         </div>
       </div>
     </div>
-    <!-- Link to your main JavaScript file -->
-    <!-- IMPORTANT: The 'type="module"' attribute is crucial for ES Modules to work. -->
-    <script src="game.js" type="module"></script>
+    
+    <!-- Hidden file input for loading -->
+    <input type="file" id="loadFileInput" accept=".json" style="display: none;" />
+    
+    <!-- Link to the NEW modular JavaScript file -->
+    <script src="game_modular.js" type="module"></script>
   </body>
 </html>

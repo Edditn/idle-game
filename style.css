@@ -9,22 +9,27 @@ body {
   margin: 0;
   padding: 20px;
   box-sizing: border-box;
-  overflow-x: hidden; /* Prevent horizontal scrollbar during transition */
+  overflow-x: auto; /* Allow horizontal scrolling for large numbers */
+  overflow-y: auto; /* Allow vertical scrolling if needed */
 }
 /* Main container for game and inventory, using flexbox for side-by-side */
 #main-game-area {
   display: grid;
   /* Define columns: left panel (stats), main game, right panel (inventory + equipped + controls) */
-  grid-template-columns: 300px 600px 600px; /* 300px (left) + 600px (game) + (300px + 300px for inv/equipped) = 600px */
-  grid-template-areas: 'player-stats game right-side-panel'; /* All in one row now, right-side-panel takes up the space */
+  /* Made more flexible to accommodate larger numbers */
+  grid-template-columns: minmax(300px, auto) minmax(600px, 1fr) minmax(600px, auto);
+  grid-template-areas: 'player-stats game right-side-panel';
   gap: 20px;
   align-items: flex-start;
   transition: margin-left 0.3s ease-out;
+  /* Allow horizontal growth */
+  max-width: none;
+  width: fit-content;
+  min-width: 1500px; /* Minimum width to maintain layout */
 }
 /* Common styles for main containers */
 .game-container,
 #player-stats-container {
-  /* Only these retain the fixed min-height for now */
   background-color: #2d3748; /* Slightly lighter dark background for container */
   border-radius: 1rem; /* Rounded corners */
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.06); /* Shadow */
@@ -33,6 +38,17 @@ body {
   flex-direction: column;
   gap: 1.5rem;
   min-height: 400px; /* Keep min-height for visual consistency */
+}
+
+/* Enhanced player stats container for large numbers */
+#player-stats-container {
+  /* Allow width to grow with content */
+  width: auto;
+  min-width: 300px;
+  max-width: 500px; /* Reasonable maximum to prevent excessive width */
+  /* Better text handling for large numbers */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 /* Specific styles for inventory and equipped items, now that they are flex items */
 #inventory-container,
@@ -45,6 +61,11 @@ body {
   flex-direction: column;
   gap: 1.5rem;
   min-height: 300px; /* Smaller min-height for individual panels */
+}
+
+/* Make equipped items container larger to fit all equipment slots */
+#equipped-items-container {
+  min-height: 450px; /* Increased from 300px to accommodate all equipment slots */
 }
 /* Assign grid areas to existing containers */
 .game-container {
@@ -74,6 +95,25 @@ body {
   display: flex;
   justify-content: space-between;
   padding: 0.25rem 0;
+  /* Allow text to wrap if numbers get very large */
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  /* Ensure minimum space for labels */
+  align-items: flex-start;
+}
+
+.stats-item > span:first-child {
+  /* Label styling */
+  flex-shrink: 0;
+  min-width: fit-content;
+}
+
+.stats-item > span:last-child {
+  /* Value styling - allow it to take needed space */
+  flex-grow: 0;
+  flex-shrink: 1;
+  text-align: right;
+  word-break: break-all; /* Break very long numbers if needed */
 }
 .log-entry {
   padding: 0.25rem 0;
@@ -293,6 +333,11 @@ body {
   max-height: 300px; /* Set max height for inventory list */
   overflow-y: auto; /* Allow scrolling if list gets too long */
 }
+
+/* Give equipped list more space to fit all equipment slots without scrolling */
+#equipped-list {
+  max-height: 400px; /* Increased from 300px to fit all 7 equipment slots comfortably */
+}
 .inventory-list-item,
 .equipped-list-item {
   /* Combined styles for list items */
@@ -401,6 +446,12 @@ body {
 .combat-text.miss {
   color: #a0aec0; /* Grey color for miss */
   font-size: 1.4rem; /* Slightly smaller than damage */
+}
+/* NEW: Style for Mastery Proc attacks */
+.combat-text.mastery-proc {
+  color: #fcd34d; /* Gold/yellow like critical hits */
+  font-size: 1.8rem; /* Slightly bigger than normal damage */
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8); /* Stronger shadow for visibility */
 }
 
 /* Talent Grid Styles */
@@ -538,6 +589,18 @@ body {
   100% { opacity: 0; }
 }
 /* Responsive adjustments */
+@media (max-width: 1600px) {
+  /* Adjust for smaller screens but maintain flexibility */
+  #main-game-area {
+    grid-template-columns: minmax(280px, auto) minmax(500px, 1fr) minmax(500px, auto);
+    min-width: 1200px; /* Reduce minimum width */
+  }
+  
+  #player-stats-container {
+    max-width: 400px; /* Slightly smaller max width */
+  }
+}
+
 @media (max-width: 1250px) {
   /* Two columns on medium screens */
   #main-game-area {
@@ -545,7 +608,13 @@ body {
     grid-template-areas:
       'player-stats game'
       'right-side-panel game'; /* Right panel takes one column, game takes the other */
+    min-width: 800px; /* Reduce minimum width further */
   }
+  
+  #player-stats-container {
+    max-width: 350px; /* Smaller on medium screens */
+  }
+  
   #right-side-panel .flex-row {
     /* On smaller screens, stack inventory and equipped vertically */
     flex-direction: column;
@@ -564,7 +633,26 @@ body {
       'game'
       'player-stats'
       'right-side-panel'; /* Right panel stacks below player stats */
+    min-width: 320px; /* Much smaller minimum for mobile */
   }
+  
+  #player-stats-container {
+    max-width: none; /* Remove max width constraint on small screens */
+    width: 100%;
+  }
+  
+  .stats-item {
+    /* Better mobile layout for stats */
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  
+  .stats-item > span:last-child {
+    text-align: left; /* Left align on mobile */
+    font-size: 0.9rem; /* Slightly smaller font */
+  }
+  
   #right-side-panel .flex-row {
     /* Ensure stacking on very small screens too */
     flex-direction: column;
@@ -679,3 +767,4 @@ body.help-active #main-game-area {
   color: #48bb78; /* Green color for capped stats */
   font-weight: bold;
 }
+
