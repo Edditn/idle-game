@@ -82,31 +82,8 @@ function shouldAutoSell(item) {
  * Calculate the sell price of an item (updated for proper item structure)
  */
 export function calculateSellPrice(item) {
-    let basePrice = 10; // Base price
-    
-    // Rarity multiplier - now item.rarity is a string, get multiplier from rarities object
+    // Sell price is itemLevel × rarity multiplier
     const rarityData = rarities[item.rarity];
     const rarityMultiplier = rarityData?.goldMultiplier || 1;
-    basePrice *= rarityMultiplier;
-    
-    // Level scaling
-    basePrice *= (1 + item.itemLevel * 0.1);
-    
-    // Stat bonuses add to price
-    const totalStats = (item.bonusAttack || 0) + 
-                      (item.bonusDefense || 0) + 
-                      (item.bonusMaxHp || 0) + 
-                      (item.bonusCriticalChance || 0) + 
-                      (item.bonusHaste || 0) + 
-                      (item.bonusMastery || 0) + 
-                      (item.bonusHealthRegen || 0);
-    
-    basePrice += totalStats * 0.5;
-    
-    // Affix bonus
-    if (item.affix) {
-        basePrice *= 1.5;
-    }
-    
-    return Math.floor(basePrice);
+    return Math.max(1, Math.floor(item.itemLevel * rarityMultiplier));
 }
