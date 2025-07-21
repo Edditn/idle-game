@@ -14,6 +14,96 @@ let freeRefreshCharges = 1; // Start with 1 free refresh
 let vendorLevel = 1; // Track vendor item level separately from player level
 
 /**
+ * Creates an item for the vendor using the same stat calculation as enemy drops
+ * @param {string} itemType - The type of item to create
+ * @param {number} itemLevel - The level of the item
+ * @param {string} rarity - The rarity of the item
+ * @param {string} affixName - The affix name to apply
+ * @returns {object} Complete item instance
+ */
+function createItemFromTypeAndRarity(itemType, itemLevel, rarity, affixName) {
+    // Find the base item data for this type
+    const itemEntry = Object.values(items).find(item => item.type === itemType);
+    
+    if (!itemEntry) {
+        console.error(`No item found for type: ${itemType}`);
+        return null;
+    }
+    
+    const effectiveStatLevel = itemLevel + (rarities[rarity]?.levelBoost || 0);
+    const selectedAffix = statAffixes[affixName];
+    
+    // Use the same level scaling calculation as regular items
+    const normalizedLevel = effectiveStatLevel / 100;
+    const levelMultiplier = 0.3 + (0.7 * normalizedLevel) + (3.0 * normalizedLevel * normalizedLevel);
+    
+    const stats = {
+        bonusAttack: 0,
+        bonusMaxHp: 0,
+        bonusDefense: 0,
+        bonusHealthRegen: 0,
+        bonusCriticalChance: 0,
+        bonusHaste: 0,
+        bonusMastery: 0,
+        defensePower: 0
+    };
+    
+    // Calculate primary stats using the SAME constants as regular items
+    if (itemEntry.type === 'weapon' || itemEntry.type === 'dagger') {
+        // Use the same formula as itemSystem.js: baseStatValue * effectiveStatLevel * WEAPON_ATTACK_SCALING_PER_LEVEL * levelMultiplier
+        stats.bonusAttack = itemEntry.baseStatValue * effectiveStatLevel * 5 * levelMultiplier;
+    } else if (['head', 'shoulders', 'chest', 'legs', 'feet'].includes(itemEntry.type)) {
+        // Use the same formulas as itemSystem.js
+        stats.bonusMaxHp = itemEntry.baseStatValue * effectiveStatLevel * 20 * levelMultiplier;
+        stats.bonusDefense = itemEntry.baseStatValue * effectiveStatLevel * 2 * levelMultiplier;
+        stats.bonusHealthRegen = itemEntry.baseStatValue * effectiveStatLevel * 0.5 * levelMultiplier;
+        
+        // Calculate Defense Power using the same weights
+        stats.defensePower = 
+            (stats.bonusMaxHp * 0.05) +
+            (stats.bonusDefense * 1) +
+            (stats.bonusHealthRegen * 10);
+    }
+    
+    // Calculate secondary stats using the SAME system as regular items
+    const secondaryStatKeys = Object.keys(selectedAffix.stats);
+    if (secondaryStatKeys.length === 2) {
+        const totalSecondaryPoints = itemEntry.baseStatValue * effectiveStatLevel * 8 * levelMultiplier;
+        const splitRatio = 0.25 + Math.random() * 0.5;
+        
+        const stat1Key = secondaryStatKeys[0];
+        const stat2Key = secondaryStatKeys[1];
+        
+        const stat1Value = totalSecondaryPoints * splitRatio;
+        const stat2Value = totalSecondaryPoints * (1 - splitRatio);
+        
+        // Assign values
+        if (stat1Key === 'criticalChance') stats.bonusCriticalChance += stat1Value;
+        else if (stat1Key === 'haste') stats.bonusHaste += stat1Value;
+        else if (stat1Key === 'mastery') stats.bonusMastery += stat1Value;
+        
+        if (stat2Key === 'criticalChance') stats.bonusCriticalChance += stat2Value;
+        else if (stat2Key === 'haste') stats.bonusHaste += stat2Value;
+        else if (stat2Key === 'mastery') stats.bonusMastery += stat2Value;
+    }
+    
+    return {
+        id: generateUniqueId(),
+        name: itemEntry.name,
+        type: itemEntry.type,
+        itemLevel: itemLevel,
+        rarity: rarity,
+        baseStatValue: itemEntry.baseStatValue,
+        affix: {
+            name: affixName,
+        },
+        ...stats,
+        sellPrice: Math.max(1, Math.floor(itemLevel * (rarities[rarity]?.goldMultiplier || 1))),
+        vendorPrice: Math.max(1, Math.floor(itemLevel * (rarities[rarity]?.goldMultiplier || 1))) * 5 // 5x sell price for vendor
+    };
+}
+
+/**
  * Get a random affix for vendor items
  */
 function getRandomAffix() {
@@ -28,73 +118,6 @@ function getRandomAffix() {
  * @param {number} itemLevel - Level of the item
  * @param {string} rarity - Rarity of the item
  * @param {string} affixName - Name of the affix
- * @returns {object} Complete item instance
- */
-function createVendorItem(itemData, itemLevel, rarity, affixName) {
-    const effectiveStatLevel = itemLevel + (rarities[rarity]?.levelBoost || 0);
-    const selectedAffix = statAffixes[affixName];
-    
-    // Use the same level scaling calculation as regular items
-    const normalizedLevel = itemLevel / 100;
-    const levelScalingMultiplier = 0.3 + (0.7 * normalizedLevel) + (3.0 * normalizedLevel * normalizedLevel);
-    
-    // Calculate primary stats exactly like regular items
-    let bonusAttack = 0;
-    let bonusDefense = 0;
-    let bonusMaxHp = 0;
-    let bonusHealthRegen = 0;
-    let defensePower = 0;
-    
-    if (itemData.type === 'weapon' || itemData.type === 'dagger') {
-        const baseAttackValue = itemData.baseStatValue * 5 * effectiveStatLevel;
-        bonusAttack = Math.floor(baseAttackValue * levelScalingMultiplier);
-    } else if (['head', 'shoulders', 'chest', 'legs', 'feet'].includes(itemData.type)) {
-        const baseMaxHpValue = itemData.baseStatValue * 20 * effectiveStatLevel;
-        const baseDefenseValue = itemData.baseStatValue * 2 * effectiveStatLevel;
-        const baseHealthRegenValue = itemData.baseStatValue * 0.5 * effectiveStatLevel;
-        
-        bonusMaxHp = Math.floor(baseMaxHpValue * levelScalingMultiplier);
-        bonusDefense = Math.floor(baseDefenseValue * levelScalingMultiplier);
-        bonusHealthRegen = Math.floor(baseHealthRegenValue * levelScalingMultiplier);
-        defensePower = (bonusMaxHp * 0.05) + (bonusDefense * 1) + (bonusHealthRegen * 10);
-    }
-    
-    // Calculate secondary stats exactly like regular items
-    const secondaryStatBase = 8 * effectiveStatLevel;
-    const secondaryStatValue = Math.floor(secondaryStatBase * levelScalingMultiplier);
-    
-    const bonusCriticalChance = selectedAffix?.stats?.criticalChance ? secondaryStatValue : 0;
-    const bonusHaste = selectedAffix?.stats?.haste ? secondaryStatValue : 0;
-    const bonusMastery = selectedAffix?.stats?.mastery ? secondaryStatValue : 0;
-    
-    // Create the item with exact same structure as regular items
-    const item = {
-        id: generateUniqueId(),
-        name: itemData.name,
-        type: itemData.type,
-        itemLevel: itemLevel,
-        rarity: rarity,
-        baseStatValue: itemData.baseStatValue,
-        affix: {
-            name: affixName
-        },
-        bonusAttack: bonusAttack,
-        bonusDefense: bonusDefense,
-        bonusMaxHp: bonusMaxHp,
-        bonusHealthRegen: bonusHealthRegen,
-        bonusCriticalChance: bonusCriticalChance,
-        bonusHaste: bonusHaste,
-        bonusMastery: bonusMastery,
-        defensePower: defensePower,
-        sellPrice: Math.max(1, Math.floor(itemLevel * (rarities[rarity]?.goldMultiplier || 1)))
-    };
-    
-    // Set vendor price
-    item.vendorPrice = calculateVendorPrice(item);
-    
-    return item;
-}
-
 /**
  * Initialize the vendor system
  */
@@ -149,8 +172,9 @@ export function refreshVendorStock(useCharge = false) {
         // Get random affix
         const randomAffix = getRandomAffix();
         
-        // Create vendor item using vendor level instead of player level
-        const item = createVendorItem(itemData, vendorLevel, itemRarity, randomAffix.name);
+        // Create vendor item using the same system as enemy drops
+        // Use createItem with specific rarity and level
+        const item = createItemFromTypeAndRarity(itemData.type, vendorLevel, itemRarity, randomAffix.name);
         
         vendorItems.push(item);
     }
@@ -315,7 +339,7 @@ export function updateVendorUI() {
         
         // Add tooltip handlers
         listItem.addEventListener('mouseenter', (e) => {
-            showTooltip(e, item, false); // false = not inventory item, no comparison
+            showTooltip(e, item, true); // true = enable comparison with equipped items
         });
         
         listItem.addEventListener('mouseleave', () => {

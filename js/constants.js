@@ -19,7 +19,7 @@ export const BASE_PLAYER_MISS_CHANCE = 1;
 export const HEALTH_REGEN_STAT_CAP_PERCENTAGE = 0.06; // Reduced to 6% to match the new cap
 
 // Ghost form and rest constants
-export const GHOST_FORM_DURATION_MS = 45000;
+export const GHOST_FORM_DURATION_MS = 15000;
 export const GHOST_FORM_UPDATE_INTERVAL_MS = 100;
 export const REST_UPDATE_INTERVAL_MS = 100;
 export const REST_HP_THRESHOLD = 0.35;
