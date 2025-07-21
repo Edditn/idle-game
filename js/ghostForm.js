@@ -26,7 +26,7 @@ export function enterGhostForm() {
     if (isGhostForm || isGameOver) return;
     
     setGhostForm(true);
-    setGhostFormTimer(GHOST_FORM_DURATION_MS / gameSpeedMultiplier);
+    setGhostFormTimer(GHOST_FORM_DURATION_MS);
     
     // Stop combat
     stopCombat();
@@ -84,7 +84,7 @@ function startGhostFormCountdown() {
         }
         
         // Decrease timer
-        const newTimer = Math.max(0, ghostFormTimer - (GHOST_FORM_UPDATE_INTERVAL_MS / gameSpeedMultiplier));
+        const newTimer = Math.max(0, ghostFormTimer - GHOST_FORM_UPDATE_INTERVAL_MS);
         setGhostFormTimer(newTimer);
         
         updateGhostFormUI();
@@ -93,7 +93,7 @@ function startGhostFormCountdown() {
         if (newTimer <= 0) {
             exitGhostForm();
         }
-    }, GHOST_FORM_UPDATE_INTERVAL_MS / gameSpeedMultiplier);
+    }, GHOST_FORM_UPDATE_INTERVAL_MS);
     
     setGhostFormInterval(intervalId);
 }
@@ -102,7 +102,7 @@ function startGhostFormCountdown() {
  * Updates the ghost form UI elements
  */
 function updateGhostFormUI() {
-    const totalDuration = GHOST_FORM_DURATION_MS / gameSpeedMultiplier;
+    const totalDuration = GHOST_FORM_DURATION_MS;
     const progress = ((totalDuration - ghostFormTimer) / totalDuration) * 100;
     const timeRemainingSeconds = ghostFormTimer / 1000;
     
@@ -142,6 +142,6 @@ export function getGhostFormTimeRemaining() {
 export function getGhostFormProgress() {
     if (!isGhostForm) return 0;
     
-    const totalDuration = GHOST_FORM_DURATION_MS / gameSpeedMultiplier;
+    const totalDuration = GHOST_FORM_DURATION_MS;
     return ((totalDuration - ghostFormTimer) / totalDuration) * 100;
 }

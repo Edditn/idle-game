@@ -6,7 +6,8 @@ import {
     ENEMY_ATTACK_SCALING_FACTOR,
     ENEMY_XP_BASE,
     ENEMY_XP_REWARD_EXPONENT,
-    ENEMY_LEVEL_RANGE
+    ENEMY_LEVEL_RANGE,
+    DYNAMIC_SCALING_THRESHOLDS
 } from './constants.js';
 import { levelZones } from './gameData.js';
 import { 
@@ -20,6 +21,31 @@ import {
 import { getRandomElement } from './utils.js';
 import { updateUI, logMessage } from './ui.js';
 import { startCombat } from './combat.js';
+
+/**
+ * Gets dynamic scaling multipliers based on enemy level
+ * @param {number} level - The enemy level
+ * @returns {object} Object with hpMultiplier and attackMultiplier
+ */
+function getDynamicScalingMultipliers(level) {
+    const range = DYNAMIC_SCALING_THRESHOLDS.ranges.find(
+        r => level >= r.minLevel && level <= r.maxLevel
+    );
+    
+    if (range) {
+        return {
+            hpMultiplier: range.hpMultiplier,
+            attackMultiplier: range.attackMultiplier
+        };
+    }
+    
+    // Default to last range if level exceeds all ranges
+    const lastRange = DYNAMIC_SCALING_THRESHOLDS.ranges[DYNAMIC_SCALING_THRESHOLDS.ranges.length - 1];
+    return {
+        hpMultiplier: lastRange.hpMultiplier,
+        attackMultiplier: lastRange.attackMultiplier
+    };
+}
 
 /**
  * Spawns the next enemy
@@ -55,10 +81,17 @@ export function spawnNextEnemy() {
     
     enemy.level = Math.floor(Math.random() * (maxEnemyLevel - minEnemyLevel + 1)) + minEnemyLevel;
     
-    // Calculate enemy stats based on level
-    enemy.maxHp = ENEMY_HP_BASE * Math.pow(ENEMY_HP_SCALING_FACTOR, enemy.level - 1);
+    // Get dynamic scaling multipliers for this level
+    const scaling = getDynamicScalingMultipliers(enemy.level);
+    
+    // Calculate enemy stats based on level with dynamic scaling
+    const baseHp = ENEMY_HP_BASE * Math.pow(ENEMY_HP_SCALING_FACTOR, enemy.level - 1);
+    enemy.maxHp = Math.floor(baseHp * scaling.hpMultiplier);
     enemy.hp = enemy.maxHp;
-    enemy.attack = ENEMY_ATTACK_BASE * Math.pow(ENEMY_ATTACK_SCALING_FACTOR, enemy.level - 1);
+    
+    const baseAttack = ENEMY_ATTACK_BASE * Math.pow(ENEMY_ATTACK_SCALING_FACTOR, enemy.level - 1);
+    enemy.attack = Math.floor(baseAttack * scaling.attackMultiplier);
+    
     enemy.xpReward = Math.floor(ENEMY_XP_BASE * Math.pow(ENEMY_XP_REWARD_EXPONENT, enemy.level - 1));
     
     // Get enemy name from current zone (player chooses zone)
@@ -172,10 +205,17 @@ function spawnEnemyFromCurrentZone() {
     
     enemy.level = Math.floor(Math.random() * (maxLevel - minLevel + 1)) + minLevel;
     
-    // Calculate stats
-    enemy.maxHp = ENEMY_HP_BASE * Math.pow(ENEMY_HP_SCALING_FACTOR, enemy.level - 1);
+    // Get dynamic scaling multipliers for this level
+    const scaling = getDynamicScalingMultipliers(enemy.level);
+    
+    // Calculate stats with dynamic scaling
+    const baseHp = ENEMY_HP_BASE * Math.pow(ENEMY_HP_SCALING_FACTOR, enemy.level - 1);
+    enemy.maxHp = Math.floor(baseHp * scaling.hpMultiplier);
     enemy.hp = enemy.maxHp;
-    enemy.attack = ENEMY_ATTACK_BASE * Math.pow(ENEMY_ATTACK_SCALING_FACTOR, enemy.level - 1);
+    
+    const baseAttack = ENEMY_ATTACK_BASE * Math.pow(ENEMY_ATTACK_SCALING_FACTOR, enemy.level - 1);
+    enemy.attack = Math.floor(baseAttack * scaling.attackMultiplier);
+    
     enemy.xpReward = Math.floor(ENEMY_XP_BASE * Math.pow(ENEMY_XP_REWARD_EXPONENT, enemy.level - 1));
     
     // Get name from zone

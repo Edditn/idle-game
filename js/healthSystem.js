@@ -1,6 +1,7 @@
 // Health and Rest System
 import { 
     BASE_HEALTH_REGEN_INTERVAL_MS,
+    BASE_ENEMY_ATTACK_INTERVAL_MS,
     REST_HP_THRESHOLD,
     REST_ENTRY_HP_THRESHOLD,
     REST_UPDATE_INTERVAL_MS,
@@ -114,19 +115,30 @@ export function startRest() {
 export function forceRest() {
     if (isResting || isGameOver || isGhostForm) return;
     
+    // Check if in combat
+    const wasInCombat = enemy && enemy.hp > 0;
+    
     // Allow force rest during combat only if HP is at or below 85%
-    if (enemy && enemy.hp > 0) {
+    if (wasInCombat) {
         const hpPercentage = player.hp / player.maxHp;
         if (hpPercentage > REST_ENTRY_HP_THRESHOLD) {
             logMessage('You cannot rest while in combat at high health!');
             return;
         }
+        
+        // Enemy flees when player forces rest
+        logMessage(`The ${enemy.name} flees as you retreat to rest!`);
+        enemy.hp = 0; // Clear the enemy
     }
     
     setResting(true);
     pauseCombat();
     
-    logMessage('You force yourself to rest...');
+    if (wasInCombat) {
+        logMessage('You retreat and force yourself to rest...');
+    } else {
+        logMessage('You force yourself to rest...');
+    }
     
     restStartTime = Date.now();
     startRestCountdown();

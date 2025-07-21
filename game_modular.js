@@ -344,7 +344,7 @@ export function updatePlayerStats() {
     player.healthRegen += equippedItemsHealthRegen;
 
     // Apply health regen cap
-    const maxRegenCapValue = player.maxHp * 0.10; // 10% cap - achievable with good gear investment
+    const maxRegenCapValue = player.maxHp * 0.06; // 6% cap - balanced with rarity level bonuses in mind
     player.isHealthRegenCappedByStats = (player.healthRegen >= maxRegenCapValue);
     player.healthRegen = Math.min(player.healthRegen, maxRegenCapValue);
 
