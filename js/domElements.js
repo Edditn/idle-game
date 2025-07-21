@@ -41,6 +41,11 @@ export const domElements = {
     itemTooltip: document.getElementById('item-tooltip'),
     goldDisplay: document.getElementById('gold-display'),
     
+    // Vendor system
+    vendorContainer: document.getElementById('vendor-container'),
+    vendorList: document.getElementById('vendor-items-list'),
+    refreshVendorBtn: document.getElementById('refreshVendorBtn'),
+    
     // Stats display
     statMaxHealth: document.getElementById('stat-max-health'),
     statHealthRegen: document.getElementById('stat-health-regen'),

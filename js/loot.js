@@ -24,8 +24,10 @@ export function rollForLoot() {
             
             // Handle currency items (Coin)
             if (lootEntry.item.type === 'currency') {
-                player.gold += quantity;
-                logMessage(`You gained ${quantity} ${lootEntry.item.name}(s)! Total Gold: ${player.gold}`);
+                // Scale gold with enemy level
+                const levelScaledQuantity = quantity * (enemy.level / 2);
+                player.gold += levelScaledQuantity;
+                logMessage(`You gained ${levelScaledQuantity} ${lootEntry.item.name}(s)! Total Gold: ${player.gold}`);
                 updateGoldUI();
             } else {
                 // Handle equipment items - create item instances with proper stats

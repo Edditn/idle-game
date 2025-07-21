@@ -79,6 +79,15 @@ import {
 } from './js/itemSystem.js';
 
 import { 
+    initializeVendor,
+    refreshVendorStock,
+    attemptVendorRefresh,
+    checkVendorRefresh,
+    updateVendorUI,
+    resetVendor
+} from './js/vendorSystem.js';
+
+import { 
     updateUI,
     logMessage,
     updateGoldUI,
@@ -124,9 +133,10 @@ function initializeGame() {
         // Autosave loaded successfully, continue with loaded state
         logMessage('Game loaded from autosave!');
         
-        // Ensure we have an enemy and combat is running
-        if (enemy.hp <= 0) {
-            spawnEnemy(); // Spawn new enemy if current one is dead
+        // Only spawn new enemy if current one is actually dead (HP exactly 0)
+        // This preserves enemies with low HP that were in combat when saved
+        if (enemy.hp === 0 || !enemy.name) {
+            spawnEnemy(); // Spawn new enemy only if current one is dead or missing
         }
         
         // Start combat system if not in special states
@@ -142,6 +152,9 @@ function initializeGame() {
     // Initialize inventory and equipment display
     updateInventoryUI(true); // Force update during initialization
     updateEquippedItemsUI();
+    
+    // Initialize vendor system
+    initializeVendor();
     
     // Start game systems
     startHealthRegenLoop();
@@ -265,6 +278,13 @@ function setupEventListeners() {
         domElements.sortInventoryBtn.addEventListener('click', () => {
             updateInventoryUI(true); // Force update for sorting
             logMessage('Inventory sorted by level (descending).');
+        });
+    }
+    
+    // Vendor controls
+    if (domElements.refreshVendorBtn) {
+        domElements.refreshVendorBtn.addEventListener('click', () => {
+            attemptVendorRefresh();
         });
     }
     
@@ -433,12 +453,12 @@ function setupSettingsAndHelp() {
     
     // Help overlay
     domElements.helpButton.addEventListener('click', () => {
-        domElements.helpOverlay.classList.remove('hidden');
+        domElements.helpOverlay.classList.add('active');
     });
     
     if (domElements.helpCloseButton) {
         domElements.helpCloseButton.addEventListener('click', () => {
-            domElements.helpOverlay.classList.add('hidden');
+            domElements.helpOverlay.classList.remove('active');
         });
     }
     
@@ -613,8 +633,15 @@ function resetGame() {
     setGhostForm(false);
     setResting(false);
     
+    // Reset vendor state
+    resetVendor();
+    
     // Reinitialize
     initializeGame();
+    
+    // Force gold to 0 again after initialization to ensure it's correct
+    player.gold = 0;
+    updateGoldUI();
     
     logMessage('Game has been reset!');
 }

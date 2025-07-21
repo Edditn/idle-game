@@ -22,7 +22,10 @@ import { updatePlayerStats } from '../game_modular.js';
 /**
  * Saves the current game state to a JSON file
  */
-export function saveGame() {
+export async function saveGame() {
+    // Get vendor data
+    const vendorData = await import('./vendorSystem.js').then(module => module.getVendorItems());
+    
     const gameState = {
         version: "1.0",
         timestamp: new Date().toISOString(),
@@ -56,10 +59,22 @@ export function saveGame() {
             equippedFeet: player.equippedFeet,
             isHealthRegenCappedByStats: player.isHealthRegenCappedByStats
         },
+        enemy: {
+            name: enemy.name,
+            level: enemy.level,
+            maxHp: enemy.maxHp,
+            hp: enemy.hp,
+            attack: enemy.attack,
+            attackSpeed: enemy.attackSpeed,
+            lastAttackTime: enemy.lastAttackTime,
+            xpReward: enemy.xpReward,
+            goldReward: enemy.goldReward
+        },
         inventory: inventory,
         talents: talents,
         currentZone: currentZone,
         shardspireFloor: shardspireFloor,
+        vendor: vendorData,
         settings: {
             autoRestEnabled: domElements.autoRestCheckbox?.checked || false,
             autoSellStatsEnabled: domElements.autoSellStatsCheckbox?.checked || false,
@@ -152,6 +167,13 @@ function applyLoadedGameState(gameState) {
         setShardspireFloor(gameState.shardspireFloor);
     }
     
+    // Restore vendor data
+    if (gameState.vendor) {
+        import('./vendorSystem.js').then(module => {
+            module.setVendorItems(gameState.vendor);
+        });
+    }
+    
     // Restore settings
     if (gameState.settings) {
         const settings = gameState.settings;
@@ -217,8 +239,11 @@ export function importGameState(jsonString) {
 /**
  * Automatically saves the game state to localStorage
  */
-export function autoSaveGame() {
+export async function autoSaveGame() {
     try {
+        // Get vendor data
+        const vendorData = await import('./vendorSystem.js').then(module => module.getVendorItems());
+        
         const gameState = {
             version: "1.0",
             timestamp: new Date().toISOString(),
@@ -260,6 +285,7 @@ export function autoSaveGame() {
                 xpReward: enemy.xpReward
             },
             inventory: inventory,
+            vendor: vendorData,
             currentZone: currentZone.name,
             talents: {
                 attackSpeed: talents.attackSpeed,

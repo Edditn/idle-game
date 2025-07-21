@@ -42,6 +42,11 @@ export function levelUp() {
         logMessage(`Level up! You are now level ${player.level}.`);
     }
     
+    // Refresh vendor stock on level up
+    import('./vendorSystem.js').then(module => {
+        module.checkVendorRefresh();
+    });
+    
     // Update player stats to reflect new level
     import('./gameState.js').then(() => {
         // This will be handled by the main game's updatePlayerStats function

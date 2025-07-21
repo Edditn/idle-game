@@ -52,7 +52,8 @@ body {
 }
 /* Specific styles for inventory and equipped items, now that they are flex items */
 #inventory-container,
-#equipped-items-container {
+#equipped-items-container,
+#vendor-container {
   background-color: #2d3748; /* Keep background etc. */
   border-radius: 1rem;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.06);
@@ -64,8 +65,9 @@ body {
 }
 
 /* Make equipped items container larger to fit all equipment slots */
-#equipped-items-container {
-  min-height: 450px; /* Increased from 300px to accommodate all equipment slots */
+#equipped-items-container,
+#vendor-container {
+  min-height: 450px; /* Increased from 300px to accommodate all equipment slots and vendor items */
 }
 /* Assign grid areas to existing containers */
 .game-container {
@@ -320,6 +322,7 @@ body {
 /* Inventory Styles */
 #inventory-list,
 #equipped-list,
+#vendor-items-list,
 #stats-list {
   /* Combined styles for list containers */
   display: flex;
@@ -334,12 +337,17 @@ body {
   overflow-y: auto; /* Allow scrolling if list gets too long */
 }
 
-/* Give equipped list more space to fit all equipment slots without scrolling */
-#equipped-list {
+/* Give equipped list and vendor list more space to fit all equipment slots without scrolling */
+#equipped-list,
+#vendor-items-list {
   max-height: 400px; /* Increased from 300px to fit all 7 equipment slots comfortably */
 }
+
+/* Remove old vendor list styling */
+
 .inventory-list-item,
-.equipped-list-item {
+.equipped-list-item,
+.vendor-item {
   /* Combined styles for list items */
   padding: 0.25rem 0.5rem;
   background-color: #2d3748;
@@ -347,21 +355,27 @@ body {
   color: #e2e8f0;
   font-size: 0.9rem;
   display: flex;
-  justify-content: space-between; /* Align name and quantity */
+  justify-content: space-between; /* Align name and quantity/price */
   align-items: center;
   cursor: pointer; /* Indicate clickable */
   transition: background-color 0.1s ease;
 }
 .inventory-list-item:hover,
-.equipped-list-item:hover {
+.equipped-list-item:hover,
+.vendor-item:hover {
   background-color: #4a5568; /* Slightly lighter on hover */
 }
-.inventory-list-item .item-name {
+.inventory-list-item .item-name,
+.vendor-item .item-name {
   flex-grow: 1; /* Allow item name to take available space */
 }
 .inventory-list-item .item-quantity {
   font-weight: bold;
   color: #a0aec0;
+}
+.vendor-item .item-price {
+  font-weight: bold;
+  font-size: 0.9rem;
 }
 #gold-display {
   font-size: 1.25rem;
@@ -616,11 +630,12 @@ body {
   }
   
   #right-side-panel .flex-row {
-    /* On smaller screens, stack inventory and equipped vertically */
+    /* On smaller screens, stack inventory, equipped, and vendor vertically */
     flex-direction: column;
   }
   #inventory-container,
-  #equipped-items-container {
+  #equipped-items-container,
+  #vendor-container {
     width: 100%; /* Take full width when stacked */
     max-width: none; /* Remove max-width constraint */
   }
@@ -658,7 +673,8 @@ body {
     flex-direction: column;
   }
   #inventory-container,
-  #equipped-items-container {
+  #equipped-items-container,
+  #vendor-container {
     width: 100%; /* Take full width when stacked */
     max-width: none; /* Remove max-width constraint */
   }
@@ -696,6 +712,54 @@ body {
 #helpOverlay .close-button:hover {
   color: #e2e8f0;
 }
+
+/* Help content styling */
+.help-content {
+  padding: 1rem 0;
+}
+
+.help-content h2 {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #e2e8f0;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #4a5568;
+  padding-bottom: 0.5rem;
+}
+
+.help-section {
+  margin-bottom: 1.5rem;
+}
+
+.help-section h3 {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #68d391;
+  margin-bottom: 0.5rem;
+}
+
+.help-section p {
+  color: #cbd5e0;
+  line-height: 1.5;
+  margin-bottom: 0.5rem;
+}
+
+#helpCloseButton {
+  background: #4a5568;
+  color: #e2e8f0;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 1rem;
+  transition: background-color 0.2s;
+}
+
+#helpCloseButton:hover {
+  background: #2d3748;
+}
+
 /* New style to shift main game area when help is active */
 body.help-active #main-game-area {
   margin-left: 450px; /* Shift the entire game area to the right, matching new width */

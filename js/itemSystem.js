@@ -36,9 +36,9 @@ export function createItem(itemType, itemLevel, rarity = 'Common') {
   
   const effectiveStatLevel = itemLevel + (rarities[rarity]?.levelBoost || 0);
   
-  // Select random affix
-  const affixNames = Object.keys(statAffixes);
-  const randomAffixName = getRandomElement(affixNames);
+  // Select random affix using explicit array to avoid bias
+  const affixes = ['of the Tiger', 'of the Wolf', 'of the Eagle'];
+  const randomAffixName = affixes[Math.floor(Math.random() * affixes.length)];
   const selectedAffix = statAffixes[randomAffixName];
   
   // Calculate stats
@@ -110,9 +110,9 @@ export function createItemInstance(itemData, droppedByEnemyLevel) {
   
   const effectiveStatLevel = itemActualLevel + (rarities[rolledRarity]?.levelBoost || 0);
   
-  // Select random affix
-  const affixNames = Object.keys(statAffixes);
-  const randomAffixName = getRandomElement(affixNames);
+  // Select random affix using explicit array to avoid bias
+  const affixes = ['of the Tiger', 'of the Wolf', 'of the Eagle'];
+  const randomAffixName = affixes[Math.floor(Math.random() * affixes.length)];
   const selectedAffix = statAffixes[randomAffixName];
   
   // Calculate stats

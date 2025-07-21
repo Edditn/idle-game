@@ -52,12 +52,16 @@ export const ENEMY_ATTACK_SCALING_FACTOR = 1.12; // Increased to 1.12 for 12% at
 
 // Dynamic scaling thresholds and multipliers
 export const DYNAMIC_SCALING_THRESHOLDS = {
-    // Level ranges with different scaling intensities
     ranges: [
-        { minLevel: 1, maxLevel: 29, hpMultiplier: 1.0, attackMultiplier: 1.0 },     // Normal scaling
-        { minLevel: 30, maxLevel: 70, hpMultiplier: 1.25, attackMultiplier: 1.25 },  // 80% more HP, 60% more attack - challenging but fair
-        { minLevel: 71, maxLevel: 100, hpMultiplier: 1.1, attackMultiplier: 1.15 }  // Slightly buffed endgame
+        { minLevel: 1, maxLevel: 9, hpMultiplier: 1.0, attackMultiplier: 1.0 },     
+        { minLevel: 10, maxLevel: 19, hpMultiplier: 1.05, attackMultiplier: 1.05 },  
+        { minLevel: 20, maxLevel: 29, hpMultiplier: 1.08, attackMultiplier: 1.08 }, 
+        { minLevel: 30, maxLevel: 39, hpMultiplier: 1.12, attackMultiplier: 1.12 }, 
+        { minLevel: 40, maxLevel: 49, hpMultiplier: 1.16, attackMultiplier: 1.15 }, 
+        { minLevel: 50, maxLevel: 59, hpMultiplier: 1.21, attackMultiplier: 1.15 }, 
+        { minLevel: 60, maxLevel: 70, hpMultiplier: 1.25, attackMultiplier: 1.15 }, 
+        { minLevel: 71, maxLevel: 100, hpMultiplier: 1.1, attackMultiplier: 1.15 }
     ]
 };
-export const ENEMY_XP_BASE = 8;
-export const ENEMY_XP_REWARD_EXPONENT = 1.07;
+export const ENEMY_XP_BASE = 10;
+export const ENEMY_XP_REWARD_EXPONENT = 1.069;

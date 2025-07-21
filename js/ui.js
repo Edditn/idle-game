@@ -31,6 +31,10 @@ export function logMessage(message) {
  */
 export function updateGoldUI() {
   domElements.goldDisplay.textContent = `GOLD: ${player.gold}`;
+  // Also update vendor UI when gold changes to reflect affordability
+  import('./vendorSystem.js').then(vendorModule => {
+    vendorModule.updateVendorUI();
+  });
 }
 
 /**
