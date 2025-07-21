@@ -11,6 +11,7 @@ import { logMessage, updateUI, updateInventoryUI, updateGoldUI, showTooltip, hid
 let vendorItems = [];
 let lastRefreshLevel = 0;
 let freeRefreshCharges = 1; // Start with 1 free refresh
+let vendorLevel = 1; // Track vendor item level separately from player level
 
 /**
  * Get a random affix for vendor items
@@ -101,6 +102,7 @@ export function initializeVendor() {
     // Clear any existing vendor data to ensure fresh start
     vendorItems = [];
     lastRefreshLevel = 0;
+    vendorLevel = player.level; // Start vendor level at player level
     refreshVendorStock();
     updateVendorUI();
 }
@@ -111,10 +113,18 @@ export function initializeVendor() {
 export function refreshVendorStock(useCharge = false) {
     vendorItems = [];
     
+    // Increment vendor level by 1 each refresh (but don't exceed player level)
+    if (useCharge) {
+        vendorLevel = Math.min(vendorLevel + 1, player.level);
+    } else {
+        // On initialization, start at player level
+        vendorLevel = Math.max(vendorLevel, player.level);
+    }
+    
     // Available item types for vendor
     const itemTypes = ['weapon', 'dagger', 'head', 'shoulders', 'chest', 'legs', 'feet'];
     
-    // Generate 4-6 items at player level with rarity chances
+    // Generate 4-6 items at vendor level with rarity chances
     const itemCount = Math.floor(Math.random() * 3) + 4; // 4-6 items
     
     for (let i = 0; i < itemCount; i++) {
@@ -139,8 +149,8 @@ export function refreshVendorStock(useCharge = false) {
         // Get random affix
         const randomAffix = getRandomAffix();
         
-        // Create vendor item exactly like regular items, but with forced rarity and level
-        const item = createVendorItem(itemData, player.level, itemRarity, randomAffix.name);
+        // Create vendor item using vendor level instead of player level
+        const item = createVendorItem(itemData, vendorLevel, itemRarity, randomAffix.name);
         
         vendorItems.push(item);
     }
@@ -151,6 +161,7 @@ export function refreshVendorStock(useCharge = false) {
     
     if (useCharge) {
         logMessage('Vendor stock has been refreshed!');
+        logMessage(`Vendor now offers level ${vendorLevel} items!`);
     }
 }
 
@@ -238,6 +249,11 @@ export function buyVendorItem(itemId) {
  */
 export function updateVendorUI() {
     if (!domElements.vendorList) return;
+    
+    // Update vendor title with current level
+    if (domElements.vendorTitle) {
+        domElements.vendorTitle.textContent = `Shop Lvl. ${vendorLevel}`;
+    }
     
     // Update refresh button text and styling
     const refreshCost = calculateRefreshCost();
@@ -332,6 +348,7 @@ export function resetVendor() {
     vendorItems = [];
     lastRefreshLevel = 0;
     freeRefreshCharges = 1;
+    vendorLevel = 1; // Reset vendor level to 1
 }
 
 /**
@@ -341,7 +358,8 @@ export function getVendorItems() {
     return {
         items: vendorItems,
         lastRefreshLevel: lastRefreshLevel,
-        freeRefreshCharges: freeRefreshCharges
+        freeRefreshCharges: freeRefreshCharges,
+        vendorLevel: vendorLevel
     };
 }
 
@@ -360,11 +378,18 @@ export function setVendorItems(vendorData) {
         if (vendorData.lastRefreshLevel !== undefined) {
             lastRefreshLevel = vendorData.lastRefreshLevel;
         }
+        if (vendorData.vendorLevel !== undefined) {
+            vendorLevel = vendorData.vendorLevel;
+        } else {
+            // For old saves without vendor level, start at player level
+            vendorLevel = player.level;
+        }
         
         // Update the UI to show restored items
         updateVendorUI();
     } else {
         // No saved data, start fresh
+        vendorLevel = player.level;
         refreshVendorStock();
     }
 }

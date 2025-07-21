@@ -43,6 +43,7 @@ export const domElements = {
     
     // Vendor system
     vendorContainer: document.getElementById('vendor-container'),
+    vendorTitle: document.getElementById('vendor-title'),
     vendorList: document.getElementById('vendor-items-list'),
     refreshVendorBtn: document.getElementById('refreshVendorBtn'),
     
